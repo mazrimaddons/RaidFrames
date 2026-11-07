@@ -1,4 +1,12 @@
-Mazrim Raid Frames 0.2.72
+Mazrim Raid Frames 0.2.73
+
+Receiving shared profiles now uses the native incoming-whisper channel and
+supports both positional chat callbacks and the native event argument table.
+Only whispers from the named sender are accepted. Profile codes, previews,
+Save as new profile, limits and existing saved settings remain unchanged.
+Manual paste remains available. Live whisper acceptance is still required.
+
+Previous update: 0.2.72
 
 Effects with the same full name and type now share one entry. Its icon,
 priority, frame appearance, colour and screen-alert settings apply to all

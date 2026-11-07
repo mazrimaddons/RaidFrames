@@ -13,10 +13,14 @@ Keep your raid organised and important information easy to see.
 
 ## Current version
 
-0.2.72. Hover targeting changes your actual selected target. Health, mana and effect
+0.2.73 beta. Hover targeting changes your actual selected target. Health, mana and effect
 tracking depend on the information available from the game, with limited coverage
 outside render distance. The experimental raid-effect reader admits up to 64
 selected spell IDs at a time. See Known issues in the addon for current limitations.
+
+Profile imports support manual paste. The corrected whisper receiver has passed
+automated checks; live one-part and multi-part delivery is still awaiting
+confirmation in this beta.
 
 ## Installation folder
 

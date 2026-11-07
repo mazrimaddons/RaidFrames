@@ -1,5 +1,5 @@
 -- Standalone lifecycle. Shared data reader and renderer are first-party modules.
-local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.72",
+local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.73",
   desc="Self/target frames. Preview build."}
 local current,generation,opening=nil,0,false
 local function member(object,key)

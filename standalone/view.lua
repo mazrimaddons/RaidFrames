@@ -25,7 +25,7 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.72",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.73",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -802,6 +802,9 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     else session.status=mode end
   end
   function s.receive_profile_chat(channel,sender,message)
+    -- Native CHAT_MESSAGE uses -3 for incoming whispers. Chat-filter constants
+    -- identify filter settings, not the event's channel number.
+    if channel=="-3"then channel=-3 end
     local session=s.profile_share;local wait=session and session.wait
     if not wait or not share_current(session)or channel~=s.profile_whisper_channel
       or type(sender)~="string"or #sender>48 or sender:lower()~=wait.sender then return end
@@ -847,13 +850,13 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         else
           local now=B.now(api)
           if not share_current(session)then return end
-          local channel=B.member(CHAT_MESSAGE_FILTERS,"WHISPER")
-          if not s.profile_chat_ready and s.profile_chat_attached and type(channel)=="number"then
+          local channel=-3
+          if not s.profile_chat_ready and s.profile_chat_attached then
             local ok,value=call(s.driver,"RegisterEvent","CHAT_MESSAGE")
             if not share_current(session)then return end
             s.profile_chat_ready=ok and value~=false
           end
-          if s.profile_chat_ready and now and type(channel)=="number"then
+          if s.profile_chat_ready and now then
             s.profile_whisper_channel=channel
             session.wait={sender=sender:lower(),parts={},count=0,deadline=now+120000}
             session.status="Listening for a whisper from "..sender.."."
@@ -3496,6 +3499,14 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       s.handlers[driver][#s.handlers[driver]+1]="OnEvent"
       local attached,value=pcall(attach,driver,"OnEvent",function(_,event,channel,targetType,_,sender,message)
         if event=="CHAT_MESSAGE"then
+          -- Some native widgets deliver only self/event and expose the five
+          -- chat fields in arg. Never mix a partial positional payload with it.
+          if channel==nil and sender==nil and message==nil then
+            local ok,payload=pcall(function()return arg end)
+            if ok and type(payload)=="table"then
+              channel=B.member(payload,1);sender=B.member(payload,4);message=B.member(payload,5)
+            end
+          end
           if s.profile_share and s.profile_share.wait then pcall(s.receive_profile_chat,channel,sender,message)end
           return
         end
