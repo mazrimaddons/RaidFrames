@@ -1,7 +1,7 @@
 -- Original shared feature code. These are local feature interfaces, NOT HQ APIs.
 local F=require("Mazrim_Raid_Frames/shared/foundation")
 local MemberLayout=require("Mazrim_Raid_Frames/shared/member_layout")
-local P={version="0.2.72",MAX_ROWS=50,compactContract=1,nativeRaidContract=1,hudManagementContract=2,overhaulContract=1,bankLayoutContract=1}
+local P={version="0.2.73",MAX_ROWS=50,compactContract=1,nativeRaidContract=1,hudManagementContract=2,overhaulContract=1,bankLayoutContract=1}
 local function finite(v)return type(v)=="number" and v==v and v>-1/0 and v<1/0 end
 -- Clip by UTF-8 character boundaries; never split a multibyte display name.
 function P.text(value,limit)
