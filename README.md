@@ -13,14 +13,25 @@ Keep your raid organised and important information easy to see.
 
 ## Current version
 
-0.2.73 beta. Hover targeting changes your actual selected target. Health, mana and effect
-tracking depend on the information available from the game, with limited coverage
-outside render distance. The experimental raid-effect reader admits up to 64
-selected spell IDs at a time. See Known issues in the addon for current limitations.
+0.2.75 adds **General Settings > Buff tracking > Target-only buff tracking**.
+It is off by default. When enabled, selected buffs update only while that raid
+member is targeted; selected debuffs keep their normal raid tracking.
+Changing mode clears previously collected buff history. This mode can still
+show buffs cast by other healers: targeting does not identify their caster.
+Save settings to keep the choice.
 
-Profile imports support manual paste. The corrected whisper receiver has passed
-automated checks; live one-part and multi-part delivery is still awaiting
-confirmation in this beta.
+The tutorial now uses your selected frame design and colours for Ctrl-drag
+practice. The opening tutorial card no longer has an arrow.
+
+Hover targeting changes your actual selected target; it does not cast spells.
+Health, mana and effect tracking depend on the game's available information,
+with limited coverage outside render distance. The experimental raid-effect
+reader admits up to 64 selected spell IDs. Last-seen timers are estimates.
+
+Profile imports support manual paste. Existing profile codes remain compatible.
+Live one-part and multi-part whisper delivery still needs confirmation.
+The optional previous-raid-target return remains experimental during rapid
+switching. An intermittent cog input issue is under investigation.
 
 ## Installation folder
 

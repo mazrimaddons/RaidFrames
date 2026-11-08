@@ -1,4 +1,20 @@
-Mazrim Raid Frames 0.2.73
+Mazrim Raid Frames 0.2.75
+
+General Settings now has Target-only buff tracking (off by default).
+When enabled, buffs update only from the current target; known selected
+debuffs continue through the raid tracker. Changing mode clears prior buff
+history. Targeting still shows buffs from any caster, not only your own.
+Save settings to keep the choice. Existing profiles and codes are preserved.
+
+Previous update: 0.2.74
+
+The tutorial's Ctrl-drag practice now uses the actual raid-frame renderer,
+including your selected Original/Ellesmere design, colours, health text and
+mana strip. Its three sample frames are reused and cleaned up with the guide.
+The first tutorial message no longer shows an arrow. Your settings and raid
+placements are preserved. Replay from cog > Quick tour to try it.
+
+Previous update: 0.2.73
 
 Receiving shared profiles now uses the native incoming-whisper channel and
 supports both positional chat callbacks and the native event argument table.
