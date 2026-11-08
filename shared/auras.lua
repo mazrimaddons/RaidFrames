@@ -7,6 +7,7 @@ local A={contract=1,watchlistContract=W.contract==1 and 1 or 0,selectedOnlyContr
  priorityContract=W.priorityContract==1 and 1 or 0,frameRulesContract=W.frameRulesContract==1 and Colours.contract==1 and 1 or 0,tintCandidatesContract=1,
  MAX_INPUT_EFFECTS=32,MAX_EFFECTS=16,MAX_MEMBERS=50,MAX_VISIBLE=6}
 local FRESH_MS,MAX_DURATION_MS=500,604800000
+A.targetBuffPolicyContract=1
 local function finite(v)return type(v)=="number"and v==v and v>=0 and v<1/0 end
 local function integer(v,lo,hi)return finite(v)and v%1==0 and v>=lo and v<=hi end
 local function token(v)
@@ -163,6 +164,14 @@ function A.new(alive)
   return cachedQueries
  end
  local closed,generation=false,0
+ local targetBuffsOnly
+ local function applyBuffPolicy(options)
+  local enabled=type(options)=="table"and options.target_buffs_only==true
+  if enabled~=targetBuffsOnly then
+   for _,record in pairs(records)do record.buffs=nil end
+   targetBuffsOnly=enabled
+  end
+ end
  local function current(ticket)
   if closed or ticket~=generation or type(alive)~="function"then return false end
   local ok,v=pcall(alive);return ok and v==true and not closed and ticket==generation
@@ -175,6 +184,7 @@ function A.new(alive)
  end
  function s.replace(samples,now,options,revision)
   local ticket=generation;if not current(ticket)or not clock(now)then return false end
+  applyBuffPolicy(options)
   local ok,staged=pcall(function()
    if not array(samples,A.MAX_MEMBERS)then return nil end
    local result,seen={},{}
@@ -187,7 +197,7 @@ function A.new(alive)
     if channel~=nil and(channel~="raid_filtered"or not token(source)or source~=sample.token)then return nil end
     local sourceKey=source..(channel=="raid_filtered"and":raid_filtered"or":ordinary")
     local incoming={identity=sample.identity,token=sample.token,
-     buffs=category(sample.buffs,sample.buffsKnown,sample.buffsComplete,now,source),
+     buffs=(not targetBuffsOnly or source=="target")and category(sample.buffs,sample.buffsKnown,sample.buffsComplete,now,source)or nil,
      debuffs=category(sample.debuffs,sample.debuffsKnown,sample.debuffsComplete,now,source)}
     local group=seen[sample.identity]
     if not group then
@@ -275,6 +285,7 @@ function A.new(alive)
  function s.frame(identity,now,options,revision,maximumIcons)
   local ticket=generation
   if not current(ticket)or not I.accepts(identity)or not clock(now)then return blank()end
+  applyBuffPolicy(options)
   local r=records[identity];if not r then return blank()end
   options=type(options)=="table"and options or{}
   local q=getQueries(options,revision)
