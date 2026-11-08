@@ -10,7 +10,7 @@ local ProfileShare=require("Mazrim_Raid_Frames/shared/profile_share")
 local U={coveragePolicyContract=1,colourPickerContract=Picker.contract==1 and 1 or 0,alwaysShiftDragContract=1,tooltipLayerContract=1,overhaulContract=1,contract=1,controlsContract=2,raidManagementContract=1,hudManagementContract=2,effectBrowserContract=1,unifiedEffectsContract=1,selectedOnlyContract=1,targetTraceContract=1,nameRefreshModeContract=1,
  expandedStylesContract=T.expandedStylesContract==1 and 1 or 0,
  priorityContract=W.priorityContract==1 and 1 or 0}
-U.targetBuffPolicyContract=1
+U.targetBuffPolicyContract=2
 local pages={{"appearance","Appearance"},{"layout","General Settings"},{"ordering","Layout Preset"},
   {"healing","Indicators"},{"effects","Buffs & Debuffs"},{"profiles","Profiles"},{"status","Advanced"}}
 local copy={
@@ -52,7 +52,8 @@ function U.new(ui,parent)
  local descriptions={
  return_target="Return to your previous raid target after your mouse leaves the frames when hover targets is on. Raid members only.",
  raid_tracker="Look for selected raid effects without changing your target. Some effects may be missed or delayed.",
- target_buffs_only="Update buffs only while that raid member is targeted. Raid-wide debuff tracking continues. Other healers' buffs can still appear.",
+ target_buffs_only="Chosen HoTs only update when you target that player, making it easier to follow your healing. Raid-wide scans won’t update these HoTs, this way you won't get other healing mixed up with your own.",
+ effect_hot_helper_detail="Use target-only updates for this effect while HoT tracking helper is on in General Settings. Other healers' HoTs may appear too.",
  raid_scan_policy="Balance buff checks, or give debuffs more attention.",
  large_alerts="Pause or resume screen alerts for your chosen debuffs.",
  reset_raid_alerts="Let previously detected effects trigger alerts again.",
@@ -263,7 +264,7 @@ function U.new(ui,parent)
   traceRow(ctx,x,y,w)
   line("trace_help","Record, then move across raid members quickly.",x,y+31,w,compact and 18 or 25,11,true)
   line("trace_status",P.text(ctx.traceStatus or"No test recorded.",84),x,y+(compact and 51 or 64),w,compact and 22 or 32,10,true)
-  line("trace_path","Mazrim_Raid_Frames/target-check.txt",x,y+(compact and 76 or 101),w,16,10,true)
+  line("trace_path","Mazrim_Raid_Frames/.data/target-check.txt",x,y+(compact and 76 or 101),w,16,10,true)
   if ctx.traceReport==true and ctx.traceActive~=true then
    button("target_trace_save",x,y+(compact and 98 or 126),192,29,ctx.traceSaved==true and"Saved"or"Retry save",ctx.traceSaved~=true)
   end
@@ -485,6 +486,7 @@ function U.new(ui,parent)
   local iconEnabled=options.auras.watch[id]==true
   local frameEnabled=rule~=nil and rule.enabled==true
   local alertEnabled=options.auras.alerts[id]==true
+  local helperEnabled=detail and detail.helperSelected==true or not detail and options.auras.hot_helper_ids[id]==true
   if detail and detail.members then iconEnabled=detail.iconSelected==true;alertEnabled=detail.alertSelected==true end
   local name=ctx.ruleName or("Effect "..id)
   local previewRoom=w<600 and 132 or 176
@@ -533,11 +535,13 @@ function U.new(ui,parent)
   s.switchStates.effect_watch_detail=iconEnabled
   s.switchStates.rule_enabled=frameEnabled
   s.switchStates.effect_alert_detail=alertEnabled
+  s.switchStates.effect_hot_helper_detail=helperEnabled
   local controls={
    {"effect_watch_detail","Show icon",on(iconEnabled),effect=true},
    {"rule_enabled","Change frame appearance",on(frameEnabled)},
    {"effect_alert_detail","Show screen alert · debuffs only",on(alertEnabled),effect=true}
   }
+  if ctx.effectKindCode=="buff"then controls[#controls+1]={"effect_hot_helper_detail","Use HoT tracking helper",on(helperEnabled),effect=true}end
   if iconEnabled then
    local priority=options.auras.priorities[id]
    controls[#controls+1]={"effect_priority_detail","Icon priority",priority==2 and"Urgent"or priority==1 and"High"or"Normal",effect=true}
@@ -746,8 +750,8 @@ function U.new(ui,parent)
     {"return_target","Return previous raid target",on(o.input.return_target)},
     {"raid_tracker","Experimental raid tracker",on(o.auras.raid_tracker),ctx.raidTrackerAvailable or o.auras.raid_tracker},
     {"general_buff_tracking","Buff tracking",heading=true,keep=3},
-    {"target_buffs_only","Target-only buff tracking",on(o.auras.target_buffs_only)},
-    {"target_buffs_note","When enabled, buffs update while targeted.\nDebuffs keep their normal raid tracking.",note=true}}
+    {"target_buffs_only","HoT tracking helper",on(o.auras.target_buffs_only)},
+    {"target_buffs_note","Choose its HoTs under Buffs & Debuffs; other effects track normally.",note=true}}
    if ctx.pages>1 then
     controls[#controls+1]={"raid_previous","Raid members: page "..ctx.page.." of "..ctx.pages,"Previous members",ctx.page>1}
     controls[#controls+1]={"raid_next","Raid member pages","Next members",ctx.page<ctx.pages}

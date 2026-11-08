@@ -9,7 +9,7 @@ local I=require("Mazrim_Raid_Frames/shared/identity")
 local L={contract=1,unifiedSearchContract=1,configurationRevisionContract=1,frameRulesContract=W.frameRulesContract==1 and 1 or 0,
  commonEffectsContract=Common.contract==1 and Meta.version=="0.0.24"and 1 or 0}
 local MAX_METADATA=512
-L.targetBuffPolicyContract=1
+L.targetBuffPolicyContract=2
 local catalogue,namedOrder,families={},{},{}
 for _,row in ipairs(Names.rows)do
  local id=W.id(row[1])
@@ -80,14 +80,16 @@ function L.new(api,alive)
  local function groupRow(row,prefs)
   local g={};for key,value in pairs(row)do g[key]=value end
   g.members=groupMembers(row);g.id=g.members[1]
-  g.selected=true;g.alertSelected=true;g.ruleEnabled=true;g.configured=false;g.hasRule=false
-  local iconBefore,alertBefore,ruleBefore,priorityBefore
+  g.selected=true;g.alertSelected=true;g.helperSelected=true;g.ruleEnabled=true;g.configured=false;g.hasRule=false
+  local iconBefore,alertBefore,helperBefore,ruleBefore,priorityBefore
   for n,id in ipairs(g.members)do
    local icon,alert,r=prefs.watch[id]==true,prefs.alerts[id]==true,prefs.frame_rules[id]
    local priority=prefs.priorities[id]or 0
+   local helper=prefs.hot_helper_ids[id]==true
    if n>1 then
     g.iconMixed=g.iconMixed or icon~=iconBefore
     g.alertMixed=g.alertMixed or alert~=alertBefore
+    g.helperMixed=g.helperMixed or helper~=helperBefore
     local different=(r~=nil)~=(ruleBefore~=nil)
     if r and ruleBefore then
      for _,key in ipairs({"enabled","kind","material","colour","priority"})do different=different or r[key]~=ruleBefore[key]end
@@ -95,14 +97,14 @@ function L.new(api,alive)
     g.ruleMixed=g.ruleMixed or different
     g.priorityMixed=g.priorityMixed or priority~=priorityBefore
    end
-   iconBefore,alertBefore,ruleBefore,priorityBefore=icon,alert,r,priority
-   g.selected=g.selected and icon;g.alertSelected=g.alertSelected and alert
-   g.configured=g.configured or icon or alert or r~=nil;g.hasRule=g.hasRule or r~=nil
+   iconBefore,alertBefore,helperBefore,ruleBefore,priorityBefore=icon,alert,helper,r,priority
+   g.selected=g.selected and icon;g.alertSelected=g.alertSelected and alert;g.helperSelected=g.helperSelected and helper
+   g.configured=g.configured or icon or alert or helper or r~=nil;g.hasRule=g.hasRule or r~=nil
    g.ruleEnabled=g.ruleEnabled and r~=nil and r.enabled==true
    g.rule=g.rule or r
   end
   g.iconSelected=g.selected
-  g.mixed=g.iconMixed or g.alertMixed or g.ruleMixed or g.priorityMixed
+  g.mixed=g.iconMixed or g.alertMixed or g.helperMixed or g.ruleMixed or g.priorityMixed
   return g
  end
  local function current()
@@ -171,7 +173,7 @@ function L.new(api,alive)
   local prefs,changed=snapshot(options,revision);if not prefs then return false end
   if not changed then return true end
   local result,seen={},{}
-  for _,map in ipairs({prefs.alerts,prefs.watch,prefs.frame_rules})do
+  for _,map in ipairs({prefs.alerts,prefs.watch,prefs.frame_rules,prefs.hot_helper_ids})do
    for _,id in ipairs(sortedIds(map))do if not seen[id]then seen[id]=true;ensure(id);result[#result+1]=id end end
   end
   priority=result;return true
@@ -187,6 +189,7 @@ function L.new(api,alive)
   local out=W.validate(checked)
   local function allowed(id)
    local known,r=catalogue[id],index[id]
+   if not checked.hot_helper_ids[id]then return true end
    if known and known.kind=="buff"or r and r.typed_buff then return false end
    return known and known.kind=="debuff"or r and r.typed_debuff==true
   end
@@ -203,6 +206,7 @@ function L.new(api,alive)
   for id in pairs(prefs.watch)do ensure(id)end
   for id in pairs(prefs.alerts)do ensure(id)end
   for id in pairs(prefs.frame_rules)do ensure(id)end
+  for id in pairs(prefs.hot_helper_ids)do ensure(id)end
   query=type(query)=="string"and query:sub(1,48):lower()or""
   if unified then query=query:match("^%s*(.-)%s*$")end
   local queryID=W.id(query)
@@ -213,7 +217,7 @@ function L.new(api,alive)
    local rule=prefs.frame_rules[id]
    local catalogued=known~=nil or r~=nil and (r.common==true or r.verified==true)
    local seen=observed[id]==true
-   local configured=prefs.watch[id]==true or prefs.alerts[id]==true or rule~=nil
+   local configured=prefs.watch[id]==true or prefs.alerts[id]==true or prefs.hot_helper_ids[id]==true or rule~=nil
    local kindCode=r and(r.buff and r.debuff and"both"or r.buff and"buff"or r.debuff and"debuff")or"unknown"
    if kindCode=="unknown"and known then kindCode=known.kind end
    local kind=kindLabels[kindCode]
@@ -229,7 +233,7 @@ function L.new(api,alive)
    local function append(id)
     if included[id]then return end
     local r=index[id]
-    local configured=prefs.watch[id]==true or prefs.alerts[id]==true or prefs.frame_rules[id]~=nil
+    local configured=prefs.watch[id]==true or prefs.alerts[id]==true or prefs.hot_helper_ids[id]==true or prefs.frame_rules[id]~=nil
     if scope=="mine"then
      if not configured then return end
     elseif not(configured or observed[id] or catalogue[id] or (r and (r.common or r.verified)) or queryID==id)then return end
@@ -249,7 +253,7 @@ function L.new(api,alive)
    if #order>=MAX_METADATA then
     -- Saved choices can outlive a full transient metadata cache. Keep their
     -- rows available for editing/removal without admitting more lookups.
-    for _,map in ipairs({prefs.watch,prefs.frame_rules,prefs.alerts})do
+    for _,map in ipairs({prefs.watch,prefs.frame_rules,prefs.alerts,prefs.hot_helper_ids})do
      for _,id in ipairs(sortedIds(map))do if not index[id]then append(id)end end
     end
    end

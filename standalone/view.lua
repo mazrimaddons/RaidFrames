@@ -25,7 +25,7 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.75",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.83",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -53,10 +53,10 @@ local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract
     and Preferences.priorityContract==1 and S.priorityContract==1 and 1 or 0,
   targetTraceContract=Trace.contract==1 and Trace.saveFormatContract==1 and Studio.targetTraceContract==1 and 1 or 0,
   nameRefreshModeContract=Studio.nameRefreshModeContract==1 and 1 or 0}
-V.targetBuffPolicyContract=Watch.targetBuffPolicyContract==1 and Auras.targetBuffPolicyContract==1
-  and Library.targetBuffPolicyContract==1 and ProfileShare.targetBuffPolicyContract==1 and Studio.targetBuffPolicyContract==1 and 1 or 0
-V.targetBuffPolicyContract=V.targetBuffPolicyContract==1 and Preferences.targetBuffPolicyContract==1
-  and C.targetBuffPolicyContract==1 and S.targetBuffPolicyContract==1 and 1 or 0
+V.targetBuffPolicyContract=Watch.targetBuffPolicyContract==2 and Auras.targetBuffPolicyContract==2
+  and Library.targetBuffPolicyContract==2 and ProfileShare.targetBuffPolicyContract==2 and Studio.targetBuffPolicyContract==2 and 2 or 0
+V.targetBuffPolicyContract=V.targetBuffPolicyContract==2 and Preferences.targetBuffPolicyContract==2
+  and C.targetBuffPolicyContract==2 and S.targetBuffPolicyContract==2 and 2 or 0
 -- Original Raid Crest geometry from the selected 28px design, quantised to26px.
 -- Decorative colour pieces have no input surface and share the owned button.
 local CREST_PALETTE={edge={124/255,116/255,87/255},gold={198/255,180/255,127/255},
@@ -86,7 +86,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
   end
   local owner_alive
   local show,replace_handler
-  s.storage=S.new(api);s.controller=C.new(s.storage.load());s.live=liveAdapter or L.new(api)
+  s.storage=S.new(api,ownerCurrent);s.controller=C.new(s.storage.load());s.live=liveAdapter or L.new(api)
   s.first_use_tour=B.member(nativeControls,"firstUseTour")==true
   s.remember_controls=B.member(nativeControls,"rememberControls")==true
   s.hover_intent=s.remember_controls and s.controller.config.controls and s.controller.config.controls.hover==true or false
@@ -251,12 +251,12 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     end
     local file=B.member(api,"File");local write=B.member(file,"Write")
     if not current()or type(write)~="function"then return finish(false)end
-    local good,value=pcall(write,file,"Mazrim_Raid_Frames/target-check.txt",report)
+    local good,value=pcall(write,file,"Mazrim_Raid_Frames/.data/target-check.txt",report)
     if not current()then return finish(false)end
     if not good or value==false then return finish(false)end
     local read=B.member(file,"Read")
     if not current()or type(read)~="function"then return finish(false)end
-    local readOK,copy=pcall(read,file,"Mazrim_Raid_Frames/target-check.txt")
+    local readOK,copy=pcall(read,file,"Mazrim_Raid_Frames/.data/target-check.txt")
     if not current()then return finish(false)end
     local budget=8192
     local function equal(a,b,depth)
@@ -1171,7 +1171,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       local on=not s.controller.config.options.auras.target_buffs_only
       s.controller.setOption("auras","target_buffs_only",on)
       s.last_aura=nil
-      s.studio_notice=on and"Buffs update while targeted; other healers' buffs can still appear. Save settings to keep this choice."
+      s.studio_notice=on and"HoT helper on. Choose its effects in Buffs & Debuffs. Other healers' HoTs may appear too. Save settings to keep this choice."
         or"Raid-wide buff tracking restored. Save settings to keep this choice."
     elseif name=="raid_scan_policy"then
       s.controller.setOption("auras","scan_policy",s.controller.config.options.auras.scan_policy=="balanced"and"debuff_priority"or"balanced")
@@ -1226,7 +1226,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       r.material=material;r.colour=Materials.defaultColour(material)
       commit_effect_choices(Watch.setMany(a,group.members,"rule",r),"Too many spell versions selected. Remove another effect first.")
       s.studio.materialsOpen=false;s.studio.section=s.effect_detail_page or 1
-    elseif name=="effect_watch_detail"or name=="effect_alert_detail"or name=="effect_priority_detail"or name:sub(1,5)=="rule_"then
+    elseif name=="effect_watch_detail"or name=="effect_alert_detail"or name=="effect_priority_detail"or name=="effect_hot_helper_detail"or name:sub(1,5)=="rule_"then
       local id=Watch.id(profileKey)
       if not id or id~=s.rule_id or s.studio.effectSection~="icons"then return end
       local a=s.controller.config.options.auras
@@ -1243,6 +1243,12 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         else
           commit_effect_choices(Watch.setMany(a,group.members,"alert",enabled),"Too many spell versions selected. Remove another effect first.")
         end
+      elseif name=="effect_hot_helper_detail"then
+        if group.kindCode~="buff"then return end
+        local enabled=not group.helperSelected
+        commit_effect_choices(Watch.setMany(a,group.members,"helper",enabled),"Too many HoT versions selected. Remove another effect first.")
+        s.last_aura=nil
+        s.studio_notice=enabled and(a.target_buffs_only and"This effect now uses the HoT helper. Other buffs track normally."or"Chosen for the HoT helper. Turn it on in General Settings, then save settings.")or"This effect uses normal buff tracking again."
       elseif name=="effect_priority_detail"then
         local level=group.selected and(Watch.priority(a,id)+1)%3 or nil
         if level~=nil then commit_effect_choices(Watch.setMany(a,group.members,"priority",level),"Icon priority could not be changed.")end
@@ -2564,10 +2570,6 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if s.visible and(type(targetSample)=="function"or due)then
       local observations={}
       local function append(value)if type(value)=="table"then for _,item in ipairs(value)do
-        if prefs.target_buffs_only and item.origin~="target"then
-          local filtered={};for k,v in pairs(item)do filtered[k]=v end
-          filtered.buffsKnown=false;filtered.buffs={};filtered.buffsComplete=false;item=filtered
-        end
         observations[#observations+1]=item
       end end end
       if due and(tracking)and type(B.member(auraSource,"deep"))=="function"and type(B.member(auraSource,"sharedBudget"))=="function"then
@@ -2626,7 +2628,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       local count=0;for i=1,#observations do if observations[i].coverage=="observed"then count=count+1 end end
       s.aura_status=count>0 and("Observed effects: "..count..". ~ = last-seen; other effects unknown.")or"Effects unknown here. Available members are observed over time."
       s.aura_status=s.aura_status.." HoT owner / dispel unknown."
-      if prefs.target_buffs_only then s.aura_status=s.aura_status.." Buffs update only while targeted; caster unknown."end
+      if prefs.target_buffs_only then s.aura_status=s.aura_status.." Chosen HoTs update only while targeted; caster unknown."end
     end
   end
   -- Selector hint from the existing display sample only. The comparison owner

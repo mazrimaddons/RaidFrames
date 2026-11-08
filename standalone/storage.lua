@@ -1,11 +1,11 @@
 local B=require("Mazrim_Raid_Frames/standalone/bridge")
 local F=require("Mazrim_Raid_Frames/shared/foundation")
 local Preferences=require("Mazrim_Raid_Frames/shared/preferences")
-local S={PATH="Mazrim_Raid_Frames/settings.txt",TUTORIAL_PATH="Mazrim_Raid_Frames/tutorial.txt",SCHEMA="mazrim.raid.basics.settings.v1",compactContract=1,placementContract=1,nativeRaidContract=1,overhaulContract=1,
+local S={PATH="Mazrim_Raid_Frames/.data/settings.txt",TUTORIAL_PATH="Mazrim_Raid_Frames/.data/tutorial.txt",TRACE_PATH="Mazrim_Raid_Frames/.data/target-check.txt",managerDataContract=1,SCHEMA="mazrim.raid.basics.settings.v1",compactContract=1,placementContract=1,nativeRaidContract=1,overhaulContract=1,
   preferencesContract=Preferences.contract==1 and 1 or 0,profileContract=Preferences.contract==1 and 1 or 0,
   managementHintContract=Preferences.helpContract==1 and 1 or 0,watchlistContract=Preferences.watchlistContract==1 and 1 or 0,
   priorityContract=Preferences.priorityContract==1 and 1 or 0}
-S.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==1 and 1 or 0
+S.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==2 and 2 or 0
 function S.defaults()
   return {schema=S.SCHEMA,settings=F.settings(),view={layout="raid",preview_count=25,position="left",compact=false,locked=true},
     options=Preferences.defaults(),profiles={},help=Preferences.helpDefaults(),visibility=Preferences.visibilityDefaults(),controls={hover=false,native_frames="unchanged"}}
@@ -65,7 +65,7 @@ local function validateCore(raw,profile)
     local a=checked.options and checked.options.auras
     local old=original.options and original.options.auras
     if type(a)=="table"and type(old)=="table"then
-      for _,key in ipairs({"selected_only","watch","debuff_colours","priorities","frame_rules","raid_tracker","large_alerts","alerts","scan_policy","target_buffs_only"})do if old[key]==nil then a[key]=nil end end
+      for _,key in ipairs({"selected_only","watch","debuff_colours","priorities","frame_rules","raid_tracker","large_alerts","alerts","scan_policy","target_buffs_only","hot_helper_ids"})do if old[key]==nil then a[key]=nil end end
       if old.debuff_colours~=nil then a.debuff_colours=Preferences.copy(old.debuff_colours)end
       if old.frame_rules~=nil then a.frame_rules=Preferences.copy(old.frame_rules)end
     end
@@ -123,12 +123,63 @@ local function validateCore(raw,profile)
   return c
 end
 function S.validate(raw)return validateCore(raw,false)end
-function S.new(api)
+function S.new(api,alive)
   local f=B.member(api,"File")
   local s={blocked=false,status="Not saved yet.",managementHintContract=S.managementHintContract}
+  local function active(guard)
+    for _,fn in ipairs({alive or false,guard or false})do
+      if type(fn)=="function"then local ok,v=pcall(fn);if not ok or v~=true then return false end end
+    end
+    return true
+  end
+  local function fileCall(guard,key,...)
+    if not active(guard)then return false end
+    local fn=B.member(f,key)
+    if not active(guard)or type(fn)~="function"then return false end
+    local ok,value=pcall(fn,f,...)
+    if not active(guard)then return false end
+    return ok,value
+  end
+  local function tutorial(value)
+    if type(value)~="table"or value.schema~="mazrim.raid.tutorial.v1"or value.shown~=true then return false end
+    for key in pairs(value)do if key~="schema"and key~="shown"then return false end end
+    return true
+  end
+  -- The manual transition keeps the old root files. If one remains, migrate
+  -- only validated data, keep an exact semantic backup, and verify both writes.
+  -- This cannot recover root files removed by a manager BEFORE this code runs.
+  local resolved={}
+  local function read(path,guard)
+    local ok,value=fileCall(guard,"Read",path)
+    if not ok then return false end
+    local tried=resolved[path];resolved[path]=true
+    -- A readback failure must never trigger another migration or replace a
+    -- partially written primary with stale legacy data.
+    if value~=nil or tried then return true,value end
+    local legacy=path==S.PATH and"Mazrim_Raid_Frames/settings.txt"
+      or path==S.TUTORIAL_PATH and"Mazrim_Raid_Frames/tutorial.txt"
+    if not legacy then return true,nil end
+    local good,raw=fileCall(guard,"Read",legacy)
+    if not good or raw==nil then return good,raw end
+    if(path==S.PATH and not S.validate(raw))or(path==S.TUTORIAL_PATH and not tutorial(raw))then return true,raw end
+    local copy=Preferences.copy(raw)
+    if not copy or not S.equal(raw,copy)then return false end
+    local backup=path==S.PATH and"Mazrim_Raid_Frames/.data/legacy-settings.txt"or"Mazrim_Raid_Frames/.data/legacy-tutorial.txt"
+    local known,existing=fileCall(guard,"Read",backup)
+    if not known or(existing~=nil and not S.equal(existing,copy))then return false end
+    local function checkedWrite(target)
+      local written,result=fileCall(guard,"Write",target,copy)
+      if not written or result==false then return false end
+      local checked,after=fileCall(guard,"Read",target)
+      return checked and S.equal(copy,after)
+    end
+    if existing==nil and not checkedWrite(backup)then return false end
+    if not checkedWrite(path)then return false end
+    return true,copy
+  end
   function s.tutorialSeen(current)
     if not current()then return nil end
-    local ok,value=B.call(f,"Read",S.TUTORIAL_PATH)
+    local ok,value=read(S.TUTORIAL_PATH,current)
     if not current()or not ok then return nil end
     if value==nil then return false end
     if type(value)~="table"or value.schema~="mazrim.raid.tutorial.v1"or value.shown~=true then return nil end
@@ -145,7 +196,7 @@ function S.new(api)
     return current()and read and S.equal(value,confirmed)
   end
   function s.load()
-    local ok,v=B.call(f,"Read",S.PATH)
+    local ok,v=read(S.PATH)
     if not ok then s.blocked=true;s.status="Settings unreadable; saving blocked.";return S.defaults() end
     if v==nil then s.status="Default layout. Use Save settings to keep changes.";return S.defaults() end
     local cleaned=S.validate(v)
@@ -173,6 +224,7 @@ function S.new(api)
     if s.blocked or not current()then return false,"Settings are unavailable for saving."end
     if name==nil or Preferences.profileName(name)~=name then return false,"Invalid profile name."end
     local function fileCall(guard,key,...)
+      if key=="Read"then return read(...,guard)end
       local fn=B.member(f,key)
       if not guard()or type(fn)~="function"then return false end
       return pcall(fn,f,...)
@@ -208,6 +260,7 @@ function S.new(api)
     if value~=false then s.status="Invalid help preference; nothing written.";return false end
     local function fileCall(key,...)
       if not active()then return false,nil,false end
+      if key=="Read"then local ok,value=read(...,current);return ok,value,active()end
       local fn=B.member(f,key)
       if not active()then return false,nil,false end
       if type(fn)~="function"then return false,nil,true end
@@ -257,6 +310,7 @@ function S.new(api)
     if count==0 then s.status="Invalid control choice; nothing written.";return false end
     local function fileCall(key,...)
       if not active()then return false,nil,false end
+      if key=="Read"then local ok,value=read(...,current);return ok,value,active()end
       local fn=B.member(f,key)
       if not active()then return false,nil,false end
       if type(fn)~="function"then return false,nil,true end
