@@ -1,5 +1,5 @@
 -- Standalone lifecycle. Shared data reader and renderer are first-party modules.
-local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.73",
+local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.75",
   desc="Self/target frames. Preview build."}
 local current,generation,opening=nil,0,false
 local function member(object,key)
@@ -91,6 +91,7 @@ local function open()
     local selectionOK,Selection=pcall(require,"Mazrim_Raid_Frames/standalone/selection")
     local auraOK,AuraSource=pcall(require,"Mazrim_Raid_Frames/standalone/aura_source")
     local traceOK,Trace=pcall(require,"Mazrim_Raid_Frames/shared/target_trace")
+    if viewOK and type(View)=="table"and View.targetBuffPolicyContract~=1 then restartMessage(api);return false end
     if not ownOK or type(Ownership)~="table"or Ownership.contract~=1 or type(Ownership.new)~="function"
       or not dataOK or type(Native)~="table"or Native.memberClassContract~=1 or Native.memberContract~=1 or Native.memberManaContract~=1 or Native.slotMetadataContract~=1 or Native.targetValidationContract~=1 or Native.distanceContract~=1 or Native.memberDisplayContract~=1 or Native.memberRoleContract~=1 or Native.memberAuraContract~=1 or Native.resourceEventDiagnosticContract~=1 or Native.resourceEventComparisonContract~=1 or type(Native.newResourceEventComparison)~="function"or type(Native.newResourceEventDiagnostic)~="function"or type(Native.new)~="function"
       or not consumerOK or type(Raid)~="table"or Raid.memberClassContract~=1 or Raid.slotMetadataContract~=1 or Raid.memberManaContract~=1 or Raid.hoverTokenContract~=1 or Raid.nativeDisplayContract~=1 or Raid.roleStyleExperimental~=1 or type(Raid.new)~="function"

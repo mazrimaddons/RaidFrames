@@ -5,6 +5,7 @@ local Colours=require("Mazrim_Raid_Frames/shared/colours")
 local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local W={contract=1,revisionSnapshotContract=1,selectedOnlyContract=1,priorityContract=1,frameRulesContract=Colours.contract==1 and 1 or 0,MAX_ENTRIES=256,MAX_ID=9007199254740991,
   commonEffectsContract=Common.contract==1 and Common.count==230 and 1 or 0}
+W.targetBuffPolicyContract=1
 local palette={red={0.88,0.20,0.22},amber={0.93,0.62,0.12},purple={0.63,0.36,0.85},
   blue={0.20,0.56,0.88},green={0.24,0.73,0.39}}
 local order={"none","red","amber","purple","blue","green"}
@@ -40,11 +41,11 @@ local function rule(raw)
 end
 function W.validate(raw)
   if raw==nil then raw={}end
-  if not keys(raw,{hots=true,debuffs=true,selected_only=true,watch=true,debuff_colours=true,priorities=true,frame_rules=true,raid_tracker=true,large_alerts=true,alerts=true,scan_policy=true})then return nil end
-  local out={hots=true,debuffs=true,selected_only=true,watch={},debuff_colours={},priorities={},frame_rules={},raid_tracker=true,large_alerts=false,alerts={},scan_policy="balanced"}
+  if not keys(raw,{hots=true,debuffs=true,selected_only=true,watch=true,debuff_colours=true,priorities=true,frame_rules=true,raid_tracker=true,large_alerts=true,alerts=true,scan_policy=true,target_buffs_only=true})then return nil end
+  local out={hots=true,debuffs=true,selected_only=true,watch={},debuff_colours={},priorities={},frame_rules={},raid_tracker=true,large_alerts=false,alerts={},scan_policy="balanced",target_buffs_only=false}
   -- Retain the old boolean in saved files/profiles for compatibility. Display
   -- always requires explicit selection; false no longer enables all effects.
-  for _,name in ipairs({"hots","debuffs","selected_only","raid_tracker","large_alerts"})do
+  for _,name in ipairs({"hots","debuffs","selected_only","raid_tracker","large_alerts","target_buffs_only"})do
     if raw[name]~=nil then if type(raw[name])~="boolean"then return nil end;out[name]=raw[name]end
   end
   if raw.scan_policy~=nil then

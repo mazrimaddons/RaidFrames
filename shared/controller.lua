@@ -12,6 +12,7 @@ local MIN_WIDTH,MAX_WIDTH,MIN_HEIGHT,MAX_HEIGHT=40,480,20,100
 local C={alwaysShiftDragContract=1,wideNamesContract=1,layoutToolsContract=1,placementContract=1,shiftDragContract=1,nativeRaidContract=1,overhaulContract=1,
   preferencesContract=Preferences.contract==1 and 1 or 0,profileContract=Preferences.contract==1 and 1 or 0,dimensionsContract=1,
   MIN_WIDTH=MIN_WIDTH,MAX_WIDTH=MAX_WIDTH,MIN_HEIGHT=MIN_HEIGHT,MAX_HEIGHT=MAX_HEIGHT}
+C.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==1 and 1 or 0
 local presets={
   {name="Native raid",mode="raid",width=62,height=34,columns=5},
   {name="Compact raid",mode="raid",width=104,height=36,columns=5},

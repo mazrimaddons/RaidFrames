@@ -25,7 +25,7 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.73",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.75",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -53,6 +53,10 @@ local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract
     and Preferences.priorityContract==1 and S.priorityContract==1 and 1 or 0,
   targetTraceContract=Trace.contract==1 and Trace.saveFormatContract==1 and Studio.targetTraceContract==1 and 1 or 0,
   nameRefreshModeContract=Studio.nameRefreshModeContract==1 and 1 or 0}
+V.targetBuffPolicyContract=Watch.targetBuffPolicyContract==1 and Auras.targetBuffPolicyContract==1
+  and Library.targetBuffPolicyContract==1 and ProfileShare.targetBuffPolicyContract==1 and Studio.targetBuffPolicyContract==1 and 1 or 0
+V.targetBuffPolicyContract=V.targetBuffPolicyContract==1 and Preferences.targetBuffPolicyContract==1
+  and C.targetBuffPolicyContract==1 and S.targetBuffPolicyContract==1 and 1 or 0
 -- Original Raid Crest geometry from the selected 28px design, quantised to26px.
 -- Decorative colour pieces have no input surface and share the owned button.
 local CREST_PALETTE={edge={124/255,116/255,87/255},gold={198/255,180/255,127/255},
@@ -1163,6 +1167,12 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         if not s.settings_open then s.hover_enabled=s.hover.arm()==true end
       end
       s.studio_notice="Return to the previous raid target when your mouse leaves the frames."
+    elseif name=="target_buffs_only"then
+      local on=not s.controller.config.options.auras.target_buffs_only
+      s.controller.setOption("auras","target_buffs_only",on)
+      s.last_aura=nil
+      s.studio_notice=on and"Buffs update while targeted; other healers' buffs can still appear. Save settings to keep this choice."
+        or"Raid-wide buff tracking restored. Save settings to keep this choice."
     elseif name=="raid_scan_policy"then
       s.controller.setOption("auras","scan_policy",s.controller.config.options.auras.scan_policy=="balanced"and"debuff_priority"or"balanced")
       s.studio_notice="Debuff priority checks debuffs more often and buffs less often."
@@ -1387,9 +1397,10 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     local c=s.cache[o];if c.enabled==v then return end
     if critical(o,"Enable",v) then c.enabled=v end
   end
+  local renderer_ui
   do
     local steps={
-      {title="Raid Frames at a glance",anchor="tab_appearance",lines={
+      {title="Raid Frames at a glance",lines={
         "•  Click or hover to target",
         "•  Move and style your raid frames",
         "•  Auto-sort by class, set priorities and mark players",
@@ -1496,10 +1507,14 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       demo.raid=drawable(root,.20,.17,.13,1);demo.priority=drawable(root,.25,.20,.13,1)
       demo.raidTitle=label("tour_raid_title",root,12);text(demo.raidTitle,"RAID SLOTS")
       demo.priorityTitle=label("tour_priority_title",root,12);text(demo.priorityTitle,"SEPARATE PRIORITY")
-      demo.raidTank=drawable(root,.22,.44,.55,1);demo.raidTankName=label("tour_raid_tank",root,12);text(demo.raidTankName,"Tank")
-      demo.priorityDps=drawable(root,.35,.29,.54,1);demo.priorityDpsName=label("tour_priority_dps",root,12);text(demo.priorityDpsName,"Mage")
+      renderer_ui.parent=root
+      demo.tank=R.create("tour_tank",renderer_ui)
+      demo.mage=R.create("tour_mage",renderer_ui)
+      demo.healer=R.create("tour_healer",renderer_ui)
+      if not demo.tank or not demo.mage or not demo.healer then s.failed=true;return nil end
+      demo.raidTank=demo.tank.root;demo.priorityDps=demo.mage.root
       demo.drop=drawable(root,.37,.31,.22,1);demo.dropText=label("tour_practice_drop",root,11)
-      demo.member=button("tour_practice_member",root);text(demo.member,"Healer");colour(demo.member.studio_bg,.54,.28,.43,1)
+      demo.member=demo.healer.root
       call(demo.member,"EnableDrag",true)
       local function current()
         return owner_alive()and s.visible and s.settings_open and steps[s.tour_step]and steps[s.tour_step].practice
@@ -1527,24 +1542,36 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       replace_handler(demo.member,"OnDragStop",stop);replace_handler(demo.member,"OnDragEnd",stop);replace_handler(demo.member,"OnMouseUp",stop)
       return demo
     end
-    local function paint_practice(root,width,y,visible)
+    local function paint_practice(root,width,y,height,visible)
       if visible and not s.tour_practice then s.tour_practice=practice_card(root)end
       local d=s.tour_practice;if not d then return end
-      for _,o in pairs(d)do show(o,visible)end
+      for _,key in ipairs({"raid","priority","raidTitle","priorityTitle","raidTank","priorityDps","drop","dropText","member"})do show(d[key],visible)end
       if not visible then return end
       local lx,rx=18,math.floor(width/2)+26
       local w=math.floor(width/2)-44
-      place(d.raid,root,lx,y,w,87);place(d.priority,root,rx,y,w,87)
+      local layout=s.controller.config.settings.raid
+      local fw=math.min(layout.width,w-18)
+      local fh=math.min(layout.height,math.floor((height-38)/2))
+      local left,right=lx+math.floor((w-fw)/2),rx+math.floor((w-fw)/2)
+      place(d.raid,root,lx,y,w,height-8);place(d.priority,root,rx,y,w,height-8)
       place(d.raidTitle,root,lx+9,y+3,w-18,18);place(d.priorityTitle,root,rx+9,y+3,w-18,18)
-      place(d.raidTank,root,lx+9,y+23,w-18,23);place(d.raidTankName,root,lx+16,y+23,w-32,23)
-      place(d.priorityDps,root,rx+9,y+23,w-18,23);place(d.priorityDpsName,root,rx+16,y+23,w-32,23)
-      local memberX,dropX=lx+9,rx+9
+      local function frame(cell,name,class,role,x,cy,interactive)
+        renderer_ui.parent=root
+        R.paint(cell,{kind="preview",name=name,classKnown=true,className=class,roleKnown=true,role=role,
+          health={known=true,current=82,maximum=100,fraction=.82},mana={known=true,current=64,maximum=100,fraction=.64}},
+          {x=x,y=cy,width=fw,height=fh},s.controller.config.settings.display,false,renderer_ui,s.controller.config.options,{preview=true})
+        optional_input(cell.input,"Enable",true)
+        optional_input(cell.input,"EnablePick",interactive);optional_input(cell.input,"Clickable",interactive)
+      end
+      frame(d.tank,"Tank","Skullknight","tank",left,y+23,false)
+      frame(d.mage,"Mage","Spellsinger","damage",right,y+23,false)
+      local memberX,dropX=left,right
       if s.tour_priority then memberX,dropX=dropX,memberX end
-      place(d.drop,root,dropX,y+51,w-18,27);place(d.dropText,root,dropX+7,y+51,w-32,27)
+      local memberY=y+27+fh
+      place(d.drop,root,dropX,memberY,fw,fh);place(d.dropText,root,dropX+3,memberY,fw-6,fh)
       text(d.dropText,s.tour_practice_drag and"Drop here"or"Empty slot")
       if s.tour_practice_drag then colour(d.drop,.57,.42,.19,1)else colour(d.drop,.37,.31,.22,1)end
-      place(d.member,root,memberX,y+51,w-18,27)
-      place(d.member.studio_bg,d.member,0,0,w-18,27)
+      frame(d.healer,"Healer","Cleric","healer",memberX,memberY,true)
     end
 
     function s.paint_tour(w,h,now)
@@ -1555,7 +1582,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         s.tour_anchor=nil;show(s.tour_root,false);show(s.tour_arrow,false);return
       end
       local step=steps[s.tour_step]
-      local anchor=step.label and s.studio.labels[step.label]or s.buttons[step.anchor]
+      local anchor=step.label and s.studio.labels[step.label]or(step.anchor and s.buttons[step.anchor])
       local rect=s.cache[anchor]
       local ax,ay
       if rect and rect.Show then
@@ -1586,7 +1613,8 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         end
         for _,id in ipairs({"tour_skip","tour_back","tour_next"})do button(id,s.tour_root)end
       end
-      local cw,ch=488,96+#step.lines*23+(step.practice and 96 or 0)
+      local practiceHeight=step.practice and math.min(2*s.controller.config.settings.raid.height+38,h-16-96-#step.lines*23)or 0
+      local cw,ch=488,96+#step.lines*23+practiceHeight
       local root=s.tour_root;local position=s.tour_position
       local x=position and position.x or math.floor((w-cw)/2)
       local y=position and position.y or math.floor((h-ch)/2)
@@ -1606,7 +1634,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         if step.lines[n]then place(line,root,19,49+(n-1)*23,cw-38,22);text(line,step.lines[n]);show(line,true)
         else show(line,false)end
       end
-      paint_practice(root,cw,51+#step.lines*23,step.practice==true)
+      paint_practice(root,cw,51+#step.lines*23,practiceHeight,step.practice==true)
       for n,id in ipairs({"tour_skip","tour_back","tour_next"})do
         local o=s.buttons[id]
         place(o,root,n==1 and 18 or cw-18-(4-n)*88,ch-39,80,27)
@@ -1850,7 +1878,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     replace_handler(o,"OnLeave",guarded(function()s.colour_picker.drag=nil end))
     replace_handler(o,"OnClick",guarded(function(a,b)if a~="RightButton"and b~="RightButton"then s.picker_point(ticket,kind,false);s.refresh()end end))
   end
-  local renderer_ui={widget=widget,label=label,drawable=drawable,call=function(o,k,...)
+  renderer_ui={widget=widget,label=label,drawable=drawable,call=function(o,k,...)
       if not owner_alive()then return false end
       local ok,a,b=call(o,k,...);if not owner_alive()then return false end
       return ok,a,b
@@ -2516,7 +2544,8 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     s.auraModel.retain(ids)
     local prefs=s.controller.config.options.auras
     local tracking=false
-    if raidTracker then tracking=raidTracker.configure(prefs,s.controller.revision)==true end
+    local scanPrefs=s.effectLibrary.raidOptions(prefs,s.controller.revision)
+    if raidTracker then tracking=raidTracker.configure(scanPrefs or{raid_tracker=false},s.controller.revision)==true end
     if type(B.member(auraSource,"setSharedBudgetEnabled"))=="function"then auraSource.setSharedBudgetEnabled(tracking)end
     if not prefs.large_alerts then s.raidAlerts.clearVisible()end
     local auraDemand=false
@@ -2534,13 +2563,21 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     local due=not s.last_aura or now<s.last_aura or now-s.last_aura>=250
     if s.visible and(type(targetSample)=="function"or due)then
       local observations={}
-      local function append(value)if type(value)=="table"then for _,item in ipairs(value)do observations[#observations+1]=item end end end
+      local function append(value)if type(value)=="table"then for _,item in ipairs(value)do
+        if prefs.target_buffs_only and item.origin~="target"then
+          local filtered={};for k,v in pairs(item)do filtered[k]=v end
+          filtered.buffsKnown=false;filtered.buffs={};filtered.buffsComplete=false;item=filtered
+        end
+        observations[#observations+1]=item
+      end end end
       if due and(tracking)and type(B.member(auraSource,"deep"))=="function"and type(B.member(auraSource,"sharedBudget"))=="function"then
         s.last_aura=now
-        local ok,deep=pcall(auraSource.deep,data.rows,now);if ok then append(deep)end
+        local deepRead=prefs.target_buffs_only and B.member(auraSource,"target")or auraSource.deep
+        local ok,deep=pcall(deepRead,data.rows,now);if ok then append(deep)end
         local ordinaryNeed=discover==true
-        if prefs.hots~=false or prefs.debuffs~=false then for _ in pairs(prefs.watch)do ordinaryNeed=true;break end end
-        for _,rule in pairs(prefs.frame_rules)do if rule.enabled and(rule.kind=="buff"or rule.kind=="any")then ordinaryNeed=true;break end end
+        local ordinaryPrefs=prefs.target_buffs_only and(scanPrefs or prefs)or prefs
+        if prefs.hots~=false or prefs.debuffs~=false then for _ in pairs(ordinaryPrefs.watch)do ordinaryNeed=true;break end end
+        for _,rule in pairs(ordinaryPrefs.frame_rules)do if rule.enabled and(rule.kind=="buff"or rule.kind=="any"or prefs.target_buffs_only)then ordinaryNeed=true;break end end
         local ordinarySlots=ordinaryNeed and(prefs.scan_policy=="debuff_priority"and 1 or 2)or 0
         if auraSource.eligibleBudgetContract==1 and type(B.member(auraSource,"ordinaryCapacity"))=="function"then
           local ok,capacity=pcall(auraSource.ordinaryCapacity,data.rows,now,ordinarySlots)
@@ -2568,6 +2605,16 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
           end
         end
         if owner_alive()and ordinarySlots>0 then local yes,rest=pcall(auraSource.sample,data.rows,now,ordinarySlots);if yes then append(rest)end end
+      elseif prefs.target_buffs_only then
+        s.last_aura=now
+        local sample=B.member(auraSource,"target")
+        if type(sample)=="function"then local ok,value=pcall(sample,data.rows,now);if ok then append(value)end end
+        local ordinaryNeed=discover
+        for _ in pairs((scanPrefs or prefs).watch)do ordinaryNeed=true;break end
+        for _,rule in pairs((scanPrefs or prefs).frame_rules)do if rule.enabled then ordinaryNeed=true;break end end
+        if ordinaryNeed and type(B.member(auraSource,"sample"))=="function"then
+          local ok,value=pcall(auraSource.sample,data.rows,now,2);if ok then append(value)end
+        end
       else
         local sample=type(targetSample)=="function"and targetSample or B.member(auraSource,"sample")
         if sample~=targetSample then s.last_aura=now end
@@ -2579,6 +2626,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       local count=0;for i=1,#observations do if observations[i].coverage=="observed"then count=count+1 end end
       s.aura_status=count>0 and("Observed effects: "..count..". ~ = last-seen; other effects unknown.")or"Effects unknown here. Available members are observed over time."
       s.aura_status=s.aura_status.." HoT owner / dispel unknown."
+      if prefs.target_buffs_only then s.aura_status=s.aura_status.." Buffs update only while targeted; caster unknown."end
     end
   end
   -- Selector hint from the existing display sample only. The comparison owner

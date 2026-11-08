@@ -3,6 +3,7 @@
 local F=require("Mazrim_Raid_Frames/shared/foundation")
 local P=require("Mazrim_Raid_Frames/shared/preferences")
 local S={contract=1,CHAT_LIMIT=120,MAX_CODE=49152,MAX_PARTS=32}
+S.targetBuffPolicyContract=1
 local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 local values={}
 for n=1,#alphabet do values[alphabet:sub(n,n)]=n-1 end
@@ -101,6 +102,9 @@ local baseline,fingerprint
 local function prepareDefaults()
  if baseline then return end
  baseline=P.snapshot({settings=F.settings(),view={layout="raid",preview_count=25,position="left",native_style=true}},true)
+ -- Keep the established MRF1 baseline and existing codes byte-compatible.
+ -- A true opt-in travels as an explicit difference in full profiles.
+ baseline.options.auras.target_buffs_only=nil
  fingerprint=hash(serial(baseline))
 end
 local function diff(value,default)
@@ -130,6 +134,7 @@ local function portable(profile,mode)
   out.options.aura_icons.positions={}
   out.options.input=P.copy(baseline.options.input)
  end
+ if out.options.auras.target_buffs_only==false then out.options.auras.target_buffs_only=nil end
  return out
 end
 function S.encode(profile,mode)
@@ -155,7 +160,7 @@ function S.decode(code)
  local data=P.copy(baseline);apply(data,patch)
  local clean=portable(data,mode)
  if not clean or S.encode(clean,mode)~=code then return nil,"The code has invalid or unsupported settings."end
- return clean,mode
+ return P.snapshot(clean,true),mode
 end
 function S.parts(code)
  if type(code)~="string"or #code>S.MAX_CODE then return nil end
