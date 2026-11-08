@@ -5,6 +5,7 @@ local S={PATH="Mazrim_Raid_Frames/settings.txt",TUTORIAL_PATH="Mazrim_Raid_Frame
   preferencesContract=Preferences.contract==1 and 1 or 0,profileContract=Preferences.contract==1 and 1 or 0,
   managementHintContract=Preferences.helpContract==1 and 1 or 0,watchlistContract=Preferences.watchlistContract==1 and 1 or 0,
   priorityContract=Preferences.priorityContract==1 and 1 or 0}
+S.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==1 and 1 or 0
 function S.defaults()
   return {schema=S.SCHEMA,settings=F.settings(),view={layout="raid",preview_count=25,position="left",compact=false,locked=true},
     options=Preferences.defaults(),profiles={},help=Preferences.helpDefaults(),visibility=Preferences.visibilityDefaults(),controls={hover=false,native_frames="unchanged"}}
@@ -64,7 +65,7 @@ local function validateCore(raw,profile)
     local a=checked.options and checked.options.auras
     local old=original.options and original.options.auras
     if type(a)=="table"and type(old)=="table"then
-      for _,key in ipairs({"selected_only","watch","debuff_colours","priorities","frame_rules","raid_tracker","large_alerts","alerts","scan_policy"})do if old[key]==nil then a[key]=nil end end
+      for _,key in ipairs({"selected_only","watch","debuff_colours","priorities","frame_rules","raid_tracker","large_alerts","alerts","scan_policy","target_buffs_only"})do if old[key]==nil then a[key]=nil end end
       if old.debuff_colours~=nil then a.debuff_colours=Preferences.copy(old.debuff_colours)end
       if old.frame_rules~=nil then a.frame_rules=Preferences.copy(old.frame_rules)end
     end

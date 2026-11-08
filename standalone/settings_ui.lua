@@ -10,6 +10,7 @@ local ProfileShare=require("Mazrim_Raid_Frames/shared/profile_share")
 local U={coveragePolicyContract=1,colourPickerContract=Picker.contract==1 and 1 or 0,alwaysShiftDragContract=1,tooltipLayerContract=1,overhaulContract=1,contract=1,controlsContract=2,raidManagementContract=1,hudManagementContract=2,effectBrowserContract=1,unifiedEffectsContract=1,selectedOnlyContract=1,targetTraceContract=1,nameRefreshModeContract=1,
  expandedStylesContract=T.expandedStylesContract==1 and 1 or 0,
  priorityContract=W.priorityContract==1 and 1 or 0}
+U.targetBuffPolicyContract=1
 local pages={{"appearance","Appearance"},{"layout","General Settings"},{"ordering","Layout Preset"},
   {"healing","Indicators"},{"effects","Buffs & Debuffs"},{"profiles","Profiles"},{"status","Advanced"}}
 local copy={
@@ -51,6 +52,7 @@ function U.new(ui,parent)
  local descriptions={
  return_target="Return to your previous raid target after your mouse leaves the frames when hover targets is on. Raid members only.",
  raid_tracker="Look for selected raid effects without changing your target. Some effects may be missed or delayed.",
+ target_buffs_only="Update buffs only while that raid member is targeted. Raid-wide debuff tracking continues. Other healers' buffs can still appear.",
  raid_scan_policy="Balance buff checks, or give debuffs more attention.",
  large_alerts="Pause or resume screen alerts for your chosen debuffs.",
  reset_raid_alerts="Let previously detected effects trigger alerts again.",
@@ -222,6 +224,10 @@ function U.new(ui,parent)
    local last=math.min(#list,at+cap-1)
    -- Carry a trailing group heading onto the next page with its first field.
    if last<#list and list[last].heading and last>at then last=last-1 end
+   for n=at,last do
+    local group=list[n].keep or 1
+    if n>at and n+group-1>last then last=n-1;break end
+   end
    if last==at and list[at].heading and at<#list then last=at+1 end
    ranges[#ranges+1]={at,last};at=last+1
   end
@@ -230,6 +236,7 @@ function U.new(ui,parent)
   for n=first,range[2]do
    local r=list[n];local ry=y+(n-first)*33
    if r.heading then line(r[1],r[2],x,ry+4,w,24,13,true)
+   elseif r.note then line(r[1],r[2],x,ry,w,31,11,true)
    elseif r.field then field(r[1],r[2],r[3],x,ry,w,r.help)
    elseif r.colour then colourField(r[1],r[2],r[3],x,ry,w,r.help)
    else row(r[1],r[2],r[3],x,ry,w,r[4])
@@ -627,7 +634,7 @@ function U.new(ui,parent)
   local options=ctx.config.options;local a=options.auras;local i=options.indicators
   local rule=ctx.effectDetail and ctx.effectDetail.rule or ctx.ruleID and W.rule(a,ctx.ruleID)
   s.switchStates={appearance_role_icon=options.appearance.role_icon,mana=ctx.config.settings.display.show_mana,show_distance=options.appearance.show_distance,
-   return_target=options.input.return_target,raid_tracker=a.raid_tracker,ordering_enabled=options.member_layout.ordering.enabled and options.member_layout.enabled,
+   return_target=options.input.return_target,raid_tracker=a.raid_tracker,target_buffs_only=a.target_buffs_only,ordering_enabled=options.member_layout.ordering.enabled and options.member_layout.enabled,
    ind_target=i.target,ind_hover=i.hover,ind_health=i.low_health,ind_mana=i.low_mana,large_alerts=a.large_alerts,
    hots=a.hots,debuffs=a.debuffs,addon_frames=ctx.config.visibility.frames,
    icon_grouped=options.aura_icons.grouped~=false}
@@ -737,7 +744,10 @@ function U.new(ui,parent)
     {"native_toggle","Game's original frames",ctx.nativeFrameLabel or"Hide / Return original raid frames",ctx.canToggle},
     {"general_targeting","Targeting & tracking",heading=true},
     {"return_target","Return previous raid target",on(o.input.return_target)},
-    {"raid_tracker","Experimental raid tracker",on(o.auras.raid_tracker),ctx.raidTrackerAvailable or o.auras.raid_tracker}}
+    {"raid_tracker","Experimental raid tracker",on(o.auras.raid_tracker),ctx.raidTrackerAvailable or o.auras.raid_tracker},
+    {"general_buff_tracking","Buff tracking",heading=true,keep=3},
+    {"target_buffs_only","Target-only buff tracking",on(o.auras.target_buffs_only)},
+    {"target_buffs_note","When enabled, buffs update while targeted.\nDebuffs keep their normal raid tracking.",note=true}}
    if ctx.pages>1 then
     controls[#controls+1]={"raid_previous","Raid members: page "..ctx.page.." of "..ctx.pages,"Previous members",ctx.page>1}
     controls[#controls+1]={"raid_next","Raid member pages","Next members",ctx.page<ctx.pages}

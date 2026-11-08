@@ -9,6 +9,7 @@ local I=require("Mazrim_Raid_Frames/shared/identity")
 local L={contract=1,unifiedSearchContract=1,configurationRevisionContract=1,frameRulesContract=W.frameRulesContract==1 and 1 or 0,
  commonEffectsContract=Common.contract==1 and Meta.version=="0.0.24"and 1 or 0}
 local MAX_METADATA=512
+L.targetBuffPolicyContract=1
 local catalogue,namedOrder,families={},{},{}
 for _,row in ipairs(Names.rows)do
  local id=W.id(row[1])
@@ -52,6 +53,8 @@ function L.new(api,alive)
  local cursor,last,epoch=0,nil,0
  local priority={}
  local snapshot=W.revisionSnapshot()
+ local scanSnapshot=W.revisionSnapshot()
+ local scanOptions,scanRevision,scanPrefs
  local function identity(id)
   local r,known=index[id],catalogue[id]
   local kind=r and(r.buff and r.debuff and"both"or r.buff and"buff"or r.debuff and"debuff")or known and known.kind or"unknown"
@@ -140,6 +143,10 @@ function L.new(api,alive)
       for j=1,#list do
        local e=list[j];local r=type(e)=="table"and ensure(e.id)
        if r then
+        if sample.channel~="raid_filtered"then
+         local key="typed_"..kind
+         if not r[key]then r[key]=true;catalogueRevision=catalogueRevision+1 end
+        end
         if not observed[r.id]or not r[kind]then catalogueRevision=catalogueRevision+1 end
         observed[r.id]=true;r[kind]=true
         local name=label(e.name,r.id)
@@ -168,6 +175,26 @@ function L.new(api,alive)
    for _,id in ipairs(sortedIds(map))do if not seen[id]then seen[id]=true;ensure(id);result[#result+1]=id end end
   end
   priority=result;return true
+ end
+ -- Metadata chooses admission only; it never establishes current presence.
+ -- The filtered widget's untyped positives cannot classify an unknown ID.
+ function s.raidOptions(options,revision)
+  if not current()then return nil end
+  local checked,changed=scanSnapshot(options,revision)
+  if not checked then return nil end
+  if not checked.target_buffs_only then return options end
+  if not changed and scanOptions==checked and scanRevision==catalogueRevision then return scanPrefs end
+  local out=W.validate(checked)
+  local function allowed(id)
+   local known,r=catalogue[id],index[id]
+   if known and known.kind=="buff"or r and r.typed_buff then return false end
+   return known and known.kind=="debuff"or r and r.typed_debuff==true
+  end
+  for _,map in ipairs({"watch","alerts","frame_rules","priorities","debuff_colours"})do
+   for id in pairs(out[map])do if not allowed(id)then out[map][id]=nil end end
+  end
+  scanOptions=checked;scanRevision=catalogueRevision;scanPrefs=out
+  return out
  end
  function s.rows(scope,query,options)
   if not current()then return {}end
