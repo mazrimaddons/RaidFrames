@@ -1,5 +1,5 @@
 -- Standalone lifecycle. Shared data reader and renderer are first-party modules.
-local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.75",
+local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.83",
   desc="Self/target frames. Preview build."}
 local current,generation,opening=nil,0,false
 local function member(object,key)
@@ -91,7 +91,7 @@ local function open()
     local selectionOK,Selection=pcall(require,"Mazrim_Raid_Frames/standalone/selection")
     local auraOK,AuraSource=pcall(require,"Mazrim_Raid_Frames/standalone/aura_source")
     local traceOK,Trace=pcall(require,"Mazrim_Raid_Frames/shared/target_trace")
-    if viewOK and type(View)=="table"and View.targetBuffPolicyContract~=1 then restartMessage(api);return false end
+    if viewOK and type(View)=="table"and View.targetBuffPolicyContract~=2 then restartMessage(api);return false end
     if not ownOK or type(Ownership)~="table"or Ownership.contract~=1 or type(Ownership.new)~="function"
       or not dataOK or type(Native)~="table"or Native.memberClassContract~=1 or Native.memberContract~=1 or Native.memberManaContract~=1 or Native.slotMetadataContract~=1 or Native.targetValidationContract~=1 or Native.distanceContract~=1 or Native.memberDisplayContract~=1 or Native.memberRoleContract~=1 or Native.memberAuraContract~=1 or Native.resourceEventDiagnosticContract~=1 or Native.resourceEventComparisonContract~=1 or type(Native.newResourceEventComparison)~="function"or type(Native.newResourceEventDiagnostic)~="function"or type(Native.new)~="function"
       or not consumerOK or type(Raid)~="table"or Raid.memberClassContract~=1 or Raid.slotMetadataContract~=1 or Raid.memberManaContract~=1 or Raid.hoverTokenContract~=1 or Raid.nativeDisplayContract~=1 or Raid.roleStyleExperimental~=1 or type(Raid.new)~="function"
@@ -119,7 +119,7 @@ local function open()
     if not joined or type(adapter)~="table"or type(adapter.read)~="function"or not alive()then s.starting=false;closeState(s);return false end
     local traceMade,trace=pcall(Trace.new,addon.version)
     if type(trace)=="table"then s.trace=trace end
-    local traceValid=traceMade and type(trace)=="table"and trace.contract==1 and trace.saveFormatContract==1
+    local traceValid=traceMade and type(trace)=="table"and Trace.returnDiagnosticsContract==1 and Trace.lateConfirmationContract==1 and Trace.originAvailabilityContract==1 and trace.contract==1 and trace.saveFormatContract==1
     if traceValid then for _,key in ipairs({"record","start","clock","stop","isActive","needsSave","captureId","export","acknowledge","summary","close"})do
       if type(trace[key])~="function"then traceValid=false end
     end end
@@ -185,8 +185,8 @@ local function open()
       s.localMarker=Marker.new(reader,alive);nativeControls.localMarker=s.localMarker
     end
     local returnOK,Return=pcall(require,"Mazrim_Raid_Frames/standalone/hover_return")
-    if returnOK and type(Return)=="table"and Return.contract==1 then
-      s.returnTarget=Return.new(api,reader,alive);nativeControls.returnTarget=s.returnTarget
+    if returnOK and type(Return)=="table"and Return.contract==2 and Return.returnDiagnosticsContract==1 and Return.lateConfirmationContract==1 and Return.originAvailabilityContract==1 then
+      s.returnTarget=Return.new(api,reader,alive,trace);nativeControls.returnTarget=s.returnTarget
     end
     local checkOK,Check=pcall(require,"Mazrim_Raid_Frames/standalone/raid_aura_check")
     local factoryOK,factory=pcall(function()return W_UNIT and W_UNIT.CreateBuffWindow end)

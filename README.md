@@ -2,48 +2,47 @@
 
 Keep your raid organised and important information easy to see.
 
-- Original ArcheAge and Ellesmere-inspired frame designs with custom colours and dimensions.
+- Original ArcheAge and Ellesmere-inspired designs with custom colours and dimensions.
 - Click and optional hover targeting.
-- Automatic class sorting and manual Ctrl-drag placement.
-- A separate movable Priority group.
+- Automatic class sorting, manual Ctrl-drag placement and a movable Priority group.
 - Selected buff/debuff icons, timers, frame effects and optional screen alerts.
-- Low-health and low-mana warnings and optional distance readings.
+- Low-health and low-mana indicators and optional distance readings.
 - Native raid-management access, saved profiles and profile sharing.
-- A short first-use tutorial, with Quick tour available for replay.
+- A short first-use tutorial and replayable Quick tour.
 
-## Current version
+## Version 0.2.83
 
-0.2.75 adds **General Settings > Buff tracking > Target-only buff tracking**.
-It is off by default. When enabled, selected buffs update only while that raid
-member is targeted; selected debuffs keep their normal raid tracking.
-Changing mode clears previously collected buff history. This mode can still
-show buffs cast by other healers: targeting does not identify their caster.
-Save settings to keep the choice.
+Choose which HoTs use the HoT tracking helper. Those effects update while you
+target a member; other buffs and debuffs keep their normal tracking. This helps
+follow healing, but does not identify who cast an effect.
 
-The tutorial now uses your selected frame design and colours for Ctrl-drag
-practice. The opening tutorial card no longer has an arrow.
+Optional Return previous raid target retains the member selected before a
+hover sweep and requests them again when the pointer leaves the raid frames.
+If their identity and readable health cannot be confirmed, it keeps the last
+hovered target. The option is off by default and only supports raid members.
 
-Hover targeting changes your actual selected target; it does not cast spells.
-Health, mana and effect tracking depend on the game's available information,
-with limited coverage outside render distance. The experimental raid-effect
-reader admits up to 64 selected spell IDs. Last-seen timers are estimates.
+Settings, profiles and tutorial progress are saved in the manager-preserved
+`.data` folder. Keep that folder when updating manually.
 
-Profile imports support manual paste. Existing profile codes remain compatible.
-Live one-part and multi-part whisper delivery still needs confirmation.
-The optional previous-raid-target return remains experimental during rapid
-switching. An intermittent cog input issue is under investigation.
+## Install
 
-## Installation folder
+Install **Raid Frames** through Classic Addon Manager, or download the FULL ZIP
+from [Releases](https://github.com/mazrimaddons/RaidFrames/releases/latest).
+Use installation folder `Mazrim_Raid_Frames` and repository branch `main`.
 
-The runtime uses the folder name `Mazrim_Raid_Frames`. Install the files from
-this repository into `Documents/AAClassic/Addon/Mazrim_Raid_Frames/`.
-Keep that folder name when configuring the addon manager's installation identity.
+For manual installation, copy the `Mazrim_Raid_Frames` folder into
+`Documents/AAClassic/Addon/` and add `Mazrim_Raid_Frames` to `Addon/addons.txt`.
+Use the UPDATE ZIP to replace matching files in an existing installation.
+Fully restart the game after updating, then confirm 0.2.83 in the settings.
 
-For manual installation, add `Mazrim_Raid_Frames` to `Addon/addons.txt` on its own
-line. Refresh Addons, or restart the client if it still reports an older version.
+## Known limitations
 
-Updates should merge into the existing folder. Keep personal `settings.txt` and
-`tutorial.txt` files when updating.
+Hover targeting changes the actual selected target and does not cast spells.
+Rapid selections can briefly bounce before settling. Distant members' HP/mana
+may be unknown when the game does not expose them. Effect tracking is partial;
+last-seen timers are estimates, and buff caster ownership is unknown.
+Manual profile-code paste is verified; live whisper delivery needs confirmation.
+See **Known issues** in the addon for details.
 
 ## Credits
 
