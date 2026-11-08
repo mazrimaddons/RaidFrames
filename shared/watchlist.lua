@@ -5,7 +5,7 @@ local Colours=require("Mazrim_Raid_Frames/shared/colours")
 local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local W={contract=1,revisionSnapshotContract=1,selectedOnlyContract=1,priorityContract=1,frameRulesContract=Colours.contract==1 and 1 or 0,MAX_ENTRIES=256,MAX_ID=9007199254740991,
   commonEffectsContract=Common.contract==1 and Common.count==230 and 1 or 0}
-W.targetBuffPolicyContract=1
+W.targetBuffPolicyContract=2
 local palette={red={0.88,0.20,0.22},amber={0.93,0.62,0.12},purple={0.63,0.36,0.85},
   blue={0.20,0.56,0.88},green={0.24,0.73,0.39}}
 local order={"none","red","amber","purple","blue","green"}
@@ -41,8 +41,8 @@ local function rule(raw)
 end
 function W.validate(raw)
   if raw==nil then raw={}end
-  if not keys(raw,{hots=true,debuffs=true,selected_only=true,watch=true,debuff_colours=true,priorities=true,frame_rules=true,raid_tracker=true,large_alerts=true,alerts=true,scan_policy=true,target_buffs_only=true})then return nil end
-  local out={hots=true,debuffs=true,selected_only=true,watch={},debuff_colours={},priorities={},frame_rules={},raid_tracker=true,large_alerts=false,alerts={},scan_policy="balanced",target_buffs_only=false}
+  if not keys(raw,{hots=true,debuffs=true,selected_only=true,watch=true,debuff_colours=true,priorities=true,frame_rules=true,raid_tracker=true,large_alerts=true,alerts=true,scan_policy=true,target_buffs_only=true,hot_helper_ids=true})then return nil end
+  local out={hots=true,debuffs=true,selected_only=true,watch={},debuff_colours={},priorities={},frame_rules={},raid_tracker=true,large_alerts=false,alerts={},scan_policy="balanced",target_buffs_only=false,hot_helper_ids={}}
   -- Retain the old boolean in saved files/profiles for compatibility. Display
   -- always requires explicit selection; false no longer enables all effects.
   for _,name in ipairs({"hots","debuffs","selected_only","raid_tracker","large_alerts","target_buffs_only"})do
@@ -52,7 +52,7 @@ function W.validate(raw)
     if raw.scan_policy~="balanced"and raw.scan_policy~="debuff_priority"then return nil end
     out.scan_policy=raw.scan_policy
   end
-  for _,name in ipairs({"watch","debuff_colours","priorities","alerts"})do
+  for _,name in ipairs({"watch","debuff_colours","priorities","alerts","hot_helper_ids"})do
     local source=raw[name]
     if source~=nil then
       if type(source)~="table"then return nil end
@@ -60,7 +60,7 @@ function W.validate(raw)
       for id,value in pairs(source)do
         count=count+1
         if count>W.MAX_ENTRIES or type(id)~="string"or W.id(id)~=id then return nil end
-        if name=="watch"or name=="alerts"then if value~=true then return nil end
+        if name=="watch"or name=="alerts"or name=="hot_helper_ids"then if value~=true then return nil end
         elseif name=="priorities"then if value~=1 and value~=2 then return nil end
         elseif type(value)~="string"or not palette[value]then return nil end
         if name=="debuff_colours"then
@@ -96,6 +96,17 @@ function W.revisionSnapshot()
     if versioned and checked then rawBefore=raw;revisionBefore=revision;snapshot=checked;has=true end
     return checked,true
   end
+end
+-- User-selected helper IDs express a tracking preference, never caster or HoT evidence.
+function W.targetOnly(options,id)
+  id=W.id(id)
+  return id~=nil and type(options)=="table"and options.target_buffs_only==true
+    and type(options.hot_helper_ids)=="table"and options.hot_helper_ids[id]==true
+end
+function W.setHelper(raw,id,enabled)
+  local out=W.validate(raw);id=W.id(id)
+  if not out or not id or type(enabled)~="boolean"then return nil end
+  out.hot_helper_ids[id]=enabled and true or nil;return W.validate(out)
 end
 function W.setAlert(raw,id,enabled)
   local out=W.validate(raw);id=W.id(id)
@@ -200,7 +211,7 @@ function W.setMany(raw,ids,action,value)
   if action=="rule"then
     accepted=value~=false and rule(value)or nil
     if value~=false and not accepted then return nil end
-  elseif action=="icon"or action=="alert"then
+  elseif action=="icon"or action=="alert"or action=="helper"then
     if type(value)~="boolean"then return nil end
   elseif action=="priority"then
     if value~=0 and value~=1 and value~=2 then return nil end
@@ -211,6 +222,7 @@ function W.setMany(raw,ids,action,value)
     seen[id]=true
     if action=="icon"then out.watch[id]=value and true or nil;if not value then out.priorities[id]=nil end
     elseif action=="alert"then out.alerts[id]=value and true or nil
+    elseif action=="helper"then out.hot_helper_ids[id]=value and true or nil
     elseif action=="priority"then
       if not out.watch[id]then return nil end
       out.priorities[id]=value~=0 and value or nil

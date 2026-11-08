@@ -1,15 +1,20 @@
 -- Session-only observation recorder. No SDK, callbacks, clock, IO or targeting.
 -- Lua 5.1 pairs projects raw literal fields; it never invokes __index/__pairs.
 local M={contract=1,saveFormatContract=1,MAX_EVENTS=512,MAX_ALIASES=128,DURATION_MS=10000}
-local kinds={"ENTER","LEAVE","REQUEST","CALL_BEGIN","CALL_END","DECISION","SELECTED","TARGET_EVENT","NAME_BEGIN","NAME_END","POINTER"}
+M.returnDiagnosticsContract=1
+M.lateConfirmationContract=1
+M.originAvailabilityContract=1
+local kinds={"RETURN","ENTER","LEAVE","REQUEST","CALL_BEGIN","CALL_END","DECISION","SELECTED","TARGET_EVENT","NAME_BEGIN","NAME_END","POINTER"}
 local allowed,fields={},{}
 for i=1,#kinds do allowed[kinds[i]]=true end
 local numbers={"entry","request","frame","depth"}
 local flags={"painting","inside","dispatch","stable"}
 for i=1,#numbers do fields[numbers[i]]=true end
 for i=1,#flags do fields[flags[i]]=true end
-for _,key in ipairs({"token","expected","actual","x","y","result","targetType"})do fields[key]=true end
+for _,key in ipairs({"token","expected","actual","origin","wanted","x","y","result","targetType"})do fields[key]=true end
 local results={}
+results.RETURN_ORIGIN_UNAVAILABLE=true
+for _,key in ipairs({"RETURN_CAPTURED","RETURN_LATE_KNOWN","RETURN_QUEUED","RETURN_CONFIRM","RETURN_WAIT","RETURN_CANCEL_BEFORE","RETURN_CANCEL_OBSERVE","RETURN_CANCEL_EXPLICIT","RETURN_NO_ORIGIN","RETURN_PENDING_CALL","RETURN_TIMEOUT","RETURN_CHANGED_EXIT","RETURN_INVALID_ORIGIN","RETURN_REVOKED","RETURN_ALREADY_SELECTED","RETURN_SENT","RETURN_FAILED","RETURN_ID_UNKNOWN"})do results[key]=true end
 for _,key in ipairs({"REQUESTED","CANCELLED","UNAVAILABLE","FAILED","OFFLINE","MEMBER_CHANGED","VALID","INVALID","ERROR","UNKNOWN","OBSERVED","UNSTABLE","MISSING","SPENT","BLOCKED","DISPATCH","MONITOR","READY","PENDING","REFRESHED","UNCONFIRMED","ALREADY_CURRENT","TARGET_OR_NAME_CHANGED","IDLE","TRUE","FALSE","NIL","OK","DISABLED","NAME_REFRESH_OFF","NAME_REFRESH_ON"})do results[key]=true end
 local reasons={manual=true,timeout=true,clock_invalid=true,clock_backwards=true,hidden=true,closed=true,stopped=true,error=true,replaced=true}
 local targetTypes={target=true,watchtarget=true,targettarget=true,player=true,unknown=true}
@@ -92,6 +97,7 @@ function M.new(build)
     if token(d.token)then line=line.." token="..d.token end
     if d.expected~=nil then line=line.." expected="..alias(d.expected)end
     if d.actual~=nil or kind=="SELECTED"then line=line.." actual="..alias(d.actual)end
+    for _,key in ipairs({"origin","wanted"})do if d[key]~=nil then line=line.." "..key.."="..alias(d[key])end end
     for _,key in ipairs({"x","y"})do if finite(d[key])then line=line.." "..key.."="..string.format("%.6g",d[key])end end
     for i=1,#flags do local key=flags[i];if type(d[key])=="boolean"then line=line.." "..key.."="..(d[key]and"1"or"0")end end
     if type(d.result)=="string"and results[d.result]then line=line.." result="..d.result end

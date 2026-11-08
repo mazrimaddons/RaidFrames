@@ -7,7 +7,8 @@ local A={contract=1,watchlistContract=W.contract==1 and 1 or 0,selectedOnlyContr
  priorityContract=W.priorityContract==1 and 1 or 0,frameRulesContract=W.frameRulesContract==1 and Colours.contract==1 and 1 or 0,tintCandidatesContract=1,
  MAX_INPUT_EFFECTS=32,MAX_EFFECTS=16,MAX_MEMBERS=50,MAX_VISIBLE=6}
 local FRESH_MS,MAX_DURATION_MS=500,604800000
-A.targetBuffPolicyContract=1
+local function any(t)for _ in pairs(t)do return true end;return false end
+A.targetBuffPolicyContract=2
 local function finite(v)return type(v)=="number"and v==v and v>=0 and v<1/0 end
 local function integer(v,lo,hi)return finite(v)and v%1==0 and v>=lo and v<=hi end
 local function token(v)
@@ -36,7 +37,7 @@ local function effect(raw,now,source)
  e.priority=integer(raw.priority,0,100)and raw.priority or 0
  return e
 end
-local function category(raw,known,complete,now,source)
+local function category(raw,known,complete,now,source,blocked)
  if known~=true or not array(raw,A.MAX_INPUT_EFFECTS)then return nil end
  local effects,seen={},{}
  for i=1,#raw do
@@ -44,9 +45,9 @@ local function category(raw,known,complete,now,source)
   -- Without a caster/instance contract, show the first positively observed
   -- occurrence of an ID; never invent combined stacks or caster ownership.
   -- User priority ranks that existing representative, not separate instances.
-  if not seen[e.id]then seen[e.id]=true;effects[#effects+1]=e end
+  if not seen[e.id]and not(blocked and blocked[W.id(e.id)])then seen[e.id]=true;effects[#effects+1]=e end
  end
- return {effects=effects,observedAt=now,fresh=true,complete=complete==true}
+ return {effects=effects,observedAt=now,fresh=true,complete=complete==true and blocked==nil,sourceComplete=complete==true,blocked=blocked}
 end
 local function merge(prior,incoming)
  if not incoming then return prior end
@@ -64,7 +65,7 @@ local function merge(prior,incoming)
   seen[e.id]=true;result[#result+1]=e
  end
  if prior and not incoming.complete then
-  for i=1,#prior.effects do local old=prior.effects[i];if not seen[old.id]then result[#result+1]=old end end
+  for i=1,#prior.effects do local old=prior.effects[i];if not seen[old.id]and(not incoming.sourceComplete or incoming.blocked and incoming.blocked[W.id(old.id)])then result[#result+1]=old end end
  end
  incoming.effects=result;return incoming
 end
@@ -161,16 +162,22 @@ function A.new(alive)
  local function getQueries(options,revision)
   local prefs,changed=snapshot(options,revision)
   if changed or not cachedQueries then cachedQueries=queries(prefs,true)end
-  return cachedQueries
+  return cachedQueries,prefs
  end
  local closed,generation=false,0
- local targetBuffsOnly
- local function applyBuffPolicy(options)
-  local enabled=type(options)=="table"and options.target_buffs_only==true
-  if enabled~=targetBuffsOnly then
-   for _,record in pairs(records)do record.buffs=nil end
-   targetBuffsOnly=enabled
-  end
+ local helperIds={}
+ local function applyBuffPolicy(prefs)
+  local nextIds=prefs and prefs.target_buffs_only and prefs.hot_helper_ids or{}
+  if nextIds==helperIds then return end
+  local affected={}
+  for id in pairs(helperIds)do if not nextIds[id]then affected[id]=true end end
+  for id in pairs(nextIds)do if not helperIds[id]then affected[id]=true end end
+  if any(affected)then for _,record in pairs(records)do if record.buffs then
+   local kept={}
+   for _,e in ipairs(record.buffs.effects)do if not affected[W.id(e.id)]then kept[#kept+1]=e end end
+   record.buffs.effects=kept;record.buffs.complete=false
+  end end end
+  helperIds=nextIds
  end
  local function current(ticket)
   if closed or ticket~=generation or type(alive)~="function"then return false end
@@ -184,7 +191,7 @@ function A.new(alive)
  end
  function s.replace(samples,now,options,revision)
   local ticket=generation;if not current(ticket)or not clock(now)then return false end
-  applyBuffPolicy(options)
+  local q,prefs=getQueries(options,revision);applyBuffPolicy(prefs)
   local ok,staged=pcall(function()
    if not array(samples,A.MAX_MEMBERS)then return nil end
    local result,seen={},{}
@@ -197,7 +204,7 @@ function A.new(alive)
     if channel~=nil and(channel~="raid_filtered"or not token(source)or source~=sample.token)then return nil end
     local sourceKey=source..(channel=="raid_filtered"and":raid_filtered"or":ordinary")
     local incoming={identity=sample.identity,token=sample.token,
-     buffs=(not targetBuffsOnly or source=="target")and category(sample.buffs,sample.buffsKnown,sample.buffsComplete,now,source)or nil,
+     buffs=category(sample.buffs,sample.buffsKnown,sample.buffsComplete,now,source,source~="target"and any(helperIds)and helperIds or nil),
      debuffs=category(sample.debuffs,sample.debuffsKnown,sample.debuffsComplete,now,source)}
     local group=seen[sample.identity]
     if not group then
@@ -235,7 +242,6 @@ function A.new(alive)
    end
   end end
   if not ok or not staged then return false end
-  local q=getQueries(options,revision)
   for i=1,#staged do
    local item=staged[i];local r=records[item.identity]or{}
    r.token=item.token;r.buffs=merge(r.buffs,item.buffs);r.debuffs=merge(r.debuffs,item.debuffs)
@@ -285,10 +291,9 @@ function A.new(alive)
  function s.frame(identity,now,options,revision,maximumIcons)
   local ticket=generation
   if not current(ticket)or not I.accepts(identity)or not clock(now)then return blank()end
-  applyBuffPolicy(options)
+  local q,prefs=getQueries(options,revision);applyBuffPolicy(prefs)
   local r=records[identity];if not r then return blank()end
   options=type(options)=="table"and options or{}
-  local q=getQueries(options,revision)
   local out=blank();out.identity=identity;out.token=r.token
   out.buffs,out.buffCoverage,out.buffsKnown,out.buffsComplete,out.hotsKnown=display(r.buffs,now,options.onlyMineHots==true,q)
   out.hots=display(r.buffs,now,true,q)

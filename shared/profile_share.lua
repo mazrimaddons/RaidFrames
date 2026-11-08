@@ -3,7 +3,7 @@
 local F=require("Mazrim_Raid_Frames/shared/foundation")
 local P=require("Mazrim_Raid_Frames/shared/preferences")
 local S={contract=1,CHAT_LIMIT=120,MAX_CODE=49152,MAX_PARTS=32}
-S.targetBuffPolicyContract=1
+S.targetBuffPolicyContract=2
 local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 local values={}
 for n=1,#alphabet do values[alphabet:sub(n,n)]=n-1 end
@@ -98,6 +98,7 @@ local function parse(text)
  local result=value(0)
  if type(result)=="table"and at==#text+1 then return result end
 end
+local function any(t)for _ in pairs(t)do return true end;return false end
 local baseline,fingerprint
 local function prepareDefaults()
  if baseline then return end
@@ -105,6 +106,7 @@ local function prepareDefaults()
  -- Keep the established MRF1 baseline and existing codes byte-compatible.
  -- A true opt-in travels as an explicit difference in full profiles.
  baseline.options.auras.target_buffs_only=nil
+ baseline.options.auras.hot_helper_ids=nil
  fingerprint=hash(serial(baseline))
 end
 local function diff(value,default)
@@ -135,6 +137,7 @@ local function portable(profile,mode)
   out.options.input=P.copy(baseline.options.input)
  end
  if out.options.auras.target_buffs_only==false then out.options.auras.target_buffs_only=nil end
+ if out.options.auras.hot_helper_ids and not any(out.options.auras.hot_helper_ids)then out.options.auras.hot_helper_ids=nil end
  return out
 end
 function S.encode(profile,mode)
