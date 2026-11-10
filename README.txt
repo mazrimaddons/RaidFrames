@@ -10,7 +10,9 @@ Keep your raid organised and important information easy to see.
 - Native raid-management access, saved profiles and profile sharing.
 - A short first-use tutorial and replayable Quick tour.
 
-#Version 0.2.83
+#Version 0.2.86
+
+Confirmed raid selections now refresh stale names, styling and level badges on the native target frame. Returning to a previous raid member uses the same repair. The game's vitals can still take a moment to catch up.
 
 Choose which HoTs use the HoT tracking helper. Those effects update while you
 target a member; other buffs and debuffs keep their normal tracking. This helps
@@ -33,7 +35,7 @@ Use installation folder `Mazrim_Raid_Frames` and repository branch `main`.
 For manual installation, copy the `Mazrim_Raid_Frames` folder into
 `Documents/AAClassic/Addon/` and add `Mazrim_Raid_Frames` to `Addon/addons.txt`.
 Use the UPDATE ZIP to replace matching files in an existing installation.
-Fully restart the game after updating, then confirm 0.2.83 in the settings.
+Fully restart the game after updating, then confirm 0.2.86 in the settings.
 
 #Known limitations
 

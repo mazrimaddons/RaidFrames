@@ -1,8 +1,8 @@
 {
   "name": "Mazrim Raid Frames",
-  "version": "0.2.83",
-  "build_id": "mazrim-raid-frames-0.2.83-release-cf9f3be082ae",
-  "runtime_source_digest": "cf9f3be082ae88921327d3f94eab002f4e92a5d14a5f04949e0322dca03f1044",
+  "version": "0.2.86",
+  "build_id": "mazrim-raid-frames-0.2.86-release-94634fb8226a",
+  "runtime_source_digest": "94634fb8226a7479b4e106e26f59170b2a5bfb87d899fe29288082235f78eb0b",
   "native_source_commit": "bd4b79998fc3d266e59da756ca1d7428641644b3",
   "native_source_sha256": "9d9cfe2839b093bf9b06f681ef3ff8bf8ca1784abf725f30f0d892d592c61507",
   "saved_exclusions": [
@@ -12,7 +12,7 @@
     "Mazrim_Raid_Frames/intro.txt",
     "Mazrim_Raid_Frames/target-check.txt"
   ],
-  "native_validation": "partial coverage; local settings migration and return behavior accepted",
+  "native_validation": "owner accepted target frame and level badge repair",
   "files": {
     "Mazrim_Raid_Frames/.data/.keep": {
       "bytes": 63,
@@ -27,12 +27,12 @@
       "sha256": "8e8c410936f8e4a148946d5a926e10f6bdab2178622ea81797bfce9f04837b52"
     },
     "Mazrim_Raid_Frames/README.txt": {
-      "bytes": 2320,
-      "sha256": "eca6594adc5f6b846c91b8a02d159bdf200dc1102193b2fe0be7b7fb823f9214"
+      "bytes": 2538,
+      "sha256": "66990f2c76a773feb90191ae92280c2e69f39cda95aefe8e6c6959b12f476e13"
     },
     "Mazrim_Raid_Frames/SHA256SUMS.txt": {
       "bytes": 4862,
-      "sha256": "2750cdd2aea71a68ce4e10ca41a2e44278f1f3407fa75e890407d7fa00bec489"
+      "sha256": "3a8ef69061bfaa3aa864ed4aed0988f59f511f3be99fb0a560a04b0183b740b5"
     },
     "Mazrim_Raid_Frames/assets/colour-wheel.dds": {
       "bytes": 1048704,
@@ -75,8 +75,8 @@
       "sha256": "9d9cfe2839b093bf9b06f681ef3ff8bf8ca1784abf725f30f0d892d592c61507"
     },
     "Mazrim_Raid_Frames/main.lua": {
-      "bytes": 18654,
-      "sha256": "c6f75c1af6fa6f7f905bde16efe5c5147967440e89e4a3697da5b307977e17d5"
+      "bytes": 18854,
+      "sha256": "ec45a2daee4865a95fc41fec555741fd2355832d749d0d0543220ed5c909bc65"
     },
     "Mazrim_Raid_Frames/shared/auras.lua": {
       "bytes": 20137,
@@ -151,8 +151,8 @@
       "sha256": "59fecf56c6b5ebb4db0e149a6b4cc94b3ca36a8448c2b9ae947de364848bce8b"
     },
     "Mazrim_Raid_Frames/shared/target_trace.lua": {
-      "bytes": 9721,
-      "sha256": "7ab30b16665e42b58221a43407f541a9295e96aaff9355b714e08b06be726bc7"
+      "bytes": 9899,
+      "sha256": "b1cc3071d1b0069e603f58286db06c8c0c22ee974741c82e3ca1eb784e494b6a"
     },
     "Mazrim_Raid_Frames/shared/themes.lua": {
       "bytes": 1511,
@@ -175,8 +175,8 @@
       "sha256": "b288df216eb9342907ea3281032565682e6064ddb38b4c6d1c3236fd51919791"
     },
     "Mazrim_Raid_Frames/standalone/hover_return.lua": {
-      "bytes": 8205,
-      "sha256": "0eedb561ebf2e04a3be47532fcd399022d08758da72bf73a74e0a492ae80485e"
+      "bytes": 8657,
+      "sha256": "e368b7cc49ea65b1814ccb0d0ecdf06db3ff703ec70ec2cbfc522328849116be"
     },
     "Mazrim_Raid_Frames/standalone/live.lua": {
       "bytes": 2953,
@@ -227,12 +227,12 @@
       "sha256": "ac1772fce49eb142c2b8b335c82fb05602eb9abe05383cf253ede116622e139c"
     },
     "Mazrim_Raid_Frames/standalone/target.lua": {
-      "bytes": 7697,
-      "sha256": "29736a714216fff96e27cb155f3f5a8ed89f546ef107ac111580ba95ef6016a6"
+      "bytes": 10124,
+      "sha256": "794e65464ece8ab476d4d4d11dcff6fb868fe4019f6538d090f44736013f56b6"
     },
     "Mazrim_Raid_Frames/standalone/view.lua": {
-      "bytes": 223801,
-      "sha256": "6a6555e98796f72e98c8431e8eaab2115d43bacc1f5cbef8c57056568049c864"
+      "bytes": 223804,
+      "sha256": "7a4ec9eb68003e6138411dd5f116b9e857f1f9c652f9870e0ca73a4e121903ea"
     }
   },
   "release_version": "0.2.83",

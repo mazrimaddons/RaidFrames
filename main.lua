@@ -1,5 +1,5 @@
 -- Standalone lifecycle. Shared data reader and renderer are first-party modules.
-local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.83",
+local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.86",
   desc="Self/target frames. Preview build."}
 local current,generation,opening=nil,0,false
 local function member(object,key)
@@ -96,7 +96,7 @@ local function open()
       or not dataOK or type(Native)~="table"or Native.memberClassContract~=1 or Native.memberContract~=1 or Native.memberManaContract~=1 or Native.slotMetadataContract~=1 or Native.targetValidationContract~=1 or Native.distanceContract~=1 or Native.memberDisplayContract~=1 or Native.memberRoleContract~=1 or Native.memberAuraContract~=1 or Native.resourceEventDiagnosticContract~=1 or Native.resourceEventComparisonContract~=1 or type(Native.newResourceEventComparison)~="function"or type(Native.newResourceEventDiagnostic)~="function"or type(Native.new)~="function"
       or not consumerOK or type(Raid)~="table"or Raid.memberClassContract~=1 or Raid.slotMetadataContract~=1 or Raid.memberManaContract~=1 or Raid.hoverTokenContract~=1 or Raid.nativeDisplayContract~=1 or Raid.roleStyleExperimental~=1 or type(Raid.new)~="function"
       or not viewOK or type(View)~="table"or View.version~=addon.version or View.raidAdapterContract~=1 or View.slotMetadataContract~=1 or View.memberManaContract~=1 or View.wideNamesContract~=1 or View.hoverTargetContract~=1 or View.layoutToolsContract~=1 or View.healthEmphasisContract~=1 or View.placementContract~=1 or View.instantHoverContract~=1 or View.shiftDragContract~=1 or View.nativeRaidContract~=1 or View.dragRecoveryContract~=1 or View.nativeNameFeedbackContract~=1 or View.healingStudioContract~=1 or View.studioControlsContract~=2 or View.raidManagementContract~=1 or View.hudManagementContract~=2 or type(View.new)~="function"
-      or not targetOK or type(Target)~="table"or Target.contract~=6 or Target.nameRefreshModeContract~=1 or Target.traceContract~=1 or Target.instantHoverContract~=1 or Target.nativeNameFeedbackContract~=1 or type(Target.new)~="function"
+      or not targetOK or type(Target)~="table"or Target.contract~=6 or Target.nameRefreshModeContract~=1 or Target.traceContract~=1 or Target.instantHoverContract~=1 or Target.nativeNameFeedbackContract~=1 or Target.nativeStyleFeedbackContract~=2 or Target.returnFrameFeedbackContract~=1 or type(Target.new)~="function"
       or not probeOK or type(Probe)~="table"or Probe.contract~=1 or Probe.reasonContract~=4 or Probe.comparisonContract~=1 or type(Probe.new)~="function"
       or not selectionOK or type(Selection)~="table"or Selection.contract~=1 or type(Selection.new)~="function"
       or not viewOK or View.effectRulesContract~=1 or View.effectPriorityContract~=1 or View.selectedOnlyContract~=1 or View.targetTraceContract~=1 or View.nameRefreshModeContract~=1 or View.adaptiveEffectsContract~=1 or View.expandedStylesContract~=1 or View.colourPickerContract~=1 or View.alwaysShiftDragContract~=1 or View.tooltipLayerContract~=1 or View.roleIconToggleContract~=1 or View.inputRecoveryContract~=1 or View.overhaulContract~=1 or Native.targetAuraDepthContract~=1
@@ -129,6 +129,7 @@ local function open()
     local targetMade,target=pcall(Target.new,api,reader,alive,trace)
     if not targetMade or type(target)~="table"or target.contract~=6 or target.nameRefreshModeContract~=1 or target.traceContract~=1 or target.nativeNameFeedbackContract~=1
       or type(target.setNameRefresh)~="function"or type(target.nameRefreshEnabled)~="function"
+      or type(target.queueReturnFeedback)~="function"
       or type(target.available)~="function"or type(target.attempt)~="function"or type(target.tick)~="function"or type(target.cancel)~="function"or not alive()then
       s.starting=false;closeState(s);restartMessage(api);return false
     end
@@ -185,8 +186,8 @@ local function open()
       s.localMarker=Marker.new(reader,alive);nativeControls.localMarker=s.localMarker
     end
     local returnOK,Return=pcall(require,"Mazrim_Raid_Frames/standalone/hover_return")
-    if returnOK and type(Return)=="table"and Return.contract==2 and Return.returnDiagnosticsContract==1 and Return.lateConfirmationContract==1 and Return.originAvailabilityContract==1 then
-      s.returnTarget=Return.new(api,reader,alive,trace);nativeControls.returnTarget=s.returnTarget
+    if returnOK and type(Return)=="table"and Return.contract==2 and Return.returnDiagnosticsContract==1 and Return.lateConfirmationContract==1 and Return.originAvailabilityContract==1 and Return.frameFeedbackContract==1 then
+      s.returnTarget=Return.new(api,reader,alive,trace,target.queueReturnFeedback);nativeControls.returnTarget=s.returnTarget
     end
     local checkOK,Check=pcall(require,"Mazrim_Raid_Frames/standalone/raid_aura_check")
     local factoryOK,factory=pcall(function()return W_UNIT and W_UNIT.CreateBuffWindow end)
