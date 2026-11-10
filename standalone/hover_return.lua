@@ -5,6 +5,7 @@ local M={contract=2,MAX_PENDING_READS=10,MAX_PENDING_IDENTITIES=50}
 M.returnDiagnosticsContract=1
 M.lateConfirmationContract=1
 M.originAvailabilityContract=1
+M.frameFeedbackContract=1
 local function rowFor(rows,id)
   local found
   for _,r in ipairs(rows or{})do
@@ -15,7 +16,7 @@ local function rowFor(rows,id)
   end
   return found
 end
-function M.new(api,reader,alive,trace)
+function M.new(api,reader,alive,trace,frameFeedback)
   local s={contract=2,status="Return target off"};local session,closed,generation=nil,false,0
   local record=type(trace)=="table"and trace.contract==1 and type(trace.record)=="function"and trace.record or nil
   local function mark(result,actual,ticket,token)
@@ -119,7 +120,7 @@ function M.new(api,reader,alive,trace)
     if ticket.origin==ticket.wanted then mark("RETURN_ALREADY_SELECTED",actual,ticket);return false end
     local row=rowFor(rows,ticket.origin)
     if not row then mark("RETURN_INVALID_ORIGIN",actual,ticket);s.status="Return skipped: target/member changed";return false end
-    local function guard()return generation==stamp and current(outside)end
+    local function guard()return generation==stamp and current(outside) and generation==stamp end
     local ok,r=pcall(reader.validateTarget,row.token,ticket.origin,guard)
     if not ok or type(r)~="table"or r.contract~=1 or r.state~="valid"or r.token~=row.token or not guard()then mark("RETURN_INVALID_ORIGIN",actual,ticket,row.token);return false end
     -- A team token/identity can survive the actor unloading. Reuse the shared
@@ -144,9 +145,17 @@ function M.new(api,reader,alive,trace)
     local unit=B.member(api,"Unit");local fn=B.member(unit,"TargetUnit")
     if type(fn)~="function"or not guard()then mark("RETURN_REVOKED",verified,ticket,row.token);return false end
     local sent,value=pcall(fn,unit,row.token)
-    mark(sent and value~=false and"RETURN_SENT"or"RETURN_FAILED",verified,ticket,row.token)
-    s.status=sent and value~=false and"Previous raid target requested"or"Return request failed"
-    return sent and value~=false
+    local requested=sent and value~=false
+    mark(requested and"RETURN_SENT"or"RETURN_FAILED",verified,ticket,row.token)
+    if requested and type(frameFeedback)=="function"then
+      local name=member.nameKnown==true and member.name or row.nameKnown==true and row.name or nil
+      local function feedbackCurrent()
+        return generation==stamp and current() and generation==stamp
+      end
+      pcall(frameFeedback,row.token,ticket.origin,name,feedbackCurrent)
+    end
+    if generation==stamp then s.status=requested and"Previous raid target requested"or"Return request failed"end
+    return requested
   end
   function s.active()return not closed and session~=nil end
   function s.close()closed=true;s.cancel();return true end

@@ -25,7 +25,7 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.83",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.86",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -3036,7 +3036,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         else localMarker.invalidate();s.hide_markers()end
       else localMarker.invalidate();s.hide_markers()end
     end
-    -- One pending name-only reconciliation on the next driver frame; selection
+    -- One pending target-frame reconciliation on the next driver frame; selection
     -- itself already happened synchronously. Never wait for the render throttle.
     feedback_call("tick")
     if s.dock_repair_pending and owner_alive()and s.visible then
