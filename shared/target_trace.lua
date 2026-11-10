@@ -14,6 +14,12 @@ for i=1,#flags do fields[flags[i]]=true end
 for _,key in ipairs({"token","expected","actual","origin","wanted","x","y","result","targetType"})do fields[key]=true end
 local results={}
 results.RETURN_ORIGIN_UNAVAILABLE=true
+results.STYLE_RETURNED=true
+results.STYLE_FAILED=true
+results.STYLE_UNAVAILABLE=true
+results.RETURN_FRAME_QUEUED=true
+results.LEVEL_RETURNED=true
+results.LEVEL_FAILED=true
 for _,key in ipairs({"RETURN_CAPTURED","RETURN_LATE_KNOWN","RETURN_QUEUED","RETURN_CONFIRM","RETURN_WAIT","RETURN_CANCEL_BEFORE","RETURN_CANCEL_OBSERVE","RETURN_CANCEL_EXPLICIT","RETURN_NO_ORIGIN","RETURN_PENDING_CALL","RETURN_TIMEOUT","RETURN_CHANGED_EXIT","RETURN_INVALID_ORIGIN","RETURN_REVOKED","RETURN_ALREADY_SELECTED","RETURN_SENT","RETURN_FAILED","RETURN_ID_UNKNOWN"})do results[key]=true end
 for _,key in ipairs({"REQUESTED","CANCELLED","UNAVAILABLE","FAILED","OFFLINE","MEMBER_CHANGED","VALID","INVALID","ERROR","UNKNOWN","OBSERVED","UNSTABLE","MISSING","SPENT","BLOCKED","DISPATCH","MONITOR","READY","PENDING","REFRESHED","UNCONFIRMED","ALREADY_CURRENT","TARGET_OR_NAME_CHANGED","IDLE","TRUE","FALSE","NIL","OK","DISABLED","NAME_REFRESH_OFF","NAME_REFRESH_ON"})do results[key]=true end
 local reasons={manual=true,timeout=true,clock_invalid=true,clock_backwards=true,hidden=true,closed=true,stopped=true,error=true,replaced=true}
