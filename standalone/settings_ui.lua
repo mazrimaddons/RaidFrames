@@ -10,7 +10,7 @@ local ProfileShare=require("Mazrim_Raid_Frames/shared/profile_share")
 local U={coveragePolicyContract=1,colourPickerContract=Picker.contract==1 and 1 or 0,alwaysShiftDragContract=1,tooltipLayerContract=1,overhaulContract=1,contract=1,controlsContract=2,raidManagementContract=1,hudManagementContract=2,effectBrowserContract=1,unifiedEffectsContract=1,selectedOnlyContract=1,targetTraceContract=1,nameRefreshModeContract=1,
  expandedStylesContract=T.expandedStylesContract==1 and 1 or 0,
  priorityContract=W.priorityContract==1 and 1 or 0}
-U.targetBuffPolicyContract=2
+U.targetBuffPolicyContract=3
 local pages={{"appearance","Appearance"},{"layout","General Settings"},{"ordering","Layout Preset"},
   {"healing","Indicators"},{"effects","Buffs & Debuffs"},{"profiles","Profiles"},{"status","Advanced"}}
 local copy={
@@ -52,8 +52,6 @@ function U.new(ui,parent)
  local descriptions={
  return_target="Return to your previous raid target after your mouse leaves the frames when hover targets is on. Raid members only.",
  raid_tracker="Look for selected raid effects without changing your target. Some effects may be missed or delayed.",
- target_buffs_only="Chosen HoTs only update when you target that player, making it easier to follow your healing. Raid-wide scans won’t update these HoTs, this way you won't get other healing mixed up with your own.",
- effect_hot_helper_detail="Use target-only updates for this effect while HoT tracking helper is on in General Settings. Other healers' HoTs may appear too.",
  raid_scan_policy="Balance buff checks, or give debuffs more attention.",
  large_alerts="Pause or resume screen alerts for your chosen debuffs.",
  reset_raid_alerts="Let previously detected effects trigger alerts again.",
@@ -164,10 +162,10 @@ function U.new(ui,parent)
   local o=s.panels[id];if not o then o=box(r,g,b,1);s.panels[id]=o end
   position(o,x,y,w,h);display(o,true);return o
  end
- local function row(id,title,value,x,y,w,enabled,controlWidth)
+ local function row(id,title,value,x,y,w,enabled,controlWidth,accent)
   local valueWidth=controlWidth or 192
   line(id.."_label",title,x,y+5,math.max(1,w-valueWidth-14),23)
-  local o=button(id,x+w-valueWidth,y,valueWidth,29,value,enabled)
+  local o=button(id,x+w-valueWidth,y,valueWidth,29,value,enabled,accent)
   help(id,title,x,y+5,math.max(1,w-valueWidth-14),23)
   return o
  end
@@ -478,6 +476,50 @@ function U.new(ui,parent)
    if ui.materialPreview then ui.materialPreview(s.materialPreviews[key],math.floor((tw-sw)/2),th-sh-6,sw,sh,config.options,config.settings.display,key,tile)end
   end
  end
+ local function effectVersions(ctx,x,y,w,ph,detail)
+  local members,tracked=detail.members,detail.iconMembers
+  local active=ctx.targetEffectVersions or{}
+  local capacity=math.max(1,math.min(4,math.floor((ph-58-y-26-33)/31)))
+  local pages=math.ceil(#members/capacity)
+  local page=math.min(s.effectVersionPage or 1,pages)
+  local first,last=(page-1)*capacity+1,math.min(page*capacity,#members)
+  s.effectVersionPage=page
+  s.effectVersionTargetPage=nil
+  local title="Spell versions"
+  if pages>1 then
+   title=title.."  "..first.."–"..last.." of "..#members
+   button("effect_versions_previous",x+w-57,y,26,23,"‹",page>1)
+   button("effect_versions_next",x+w-26,y,26,23,"›",page<pages)
+   ui.bindEffect("effect_versions_previous",ctx.ruleID)
+   ui.bindEffect("effect_versions_next",ctx.ruleID)
+   for index,id in ipairs(members)do
+    if active[id] and (index<first or index>last)then
+     s.effectVersionTargetPage=math.ceil(index/capacity)
+     local action=active[id]=="player"and"Find on you"or"Find on target"
+     button("effect_versions_target",x+w-177,y,114,23,action,true,true)
+     ui.bindEffect("effect_versions_target",ctx.ruleID)
+     break
+    end
+   end
+  end
+  line("effect_versions_title",title,x,y,math.max(1,w-182),23,12,true)
+  y=y+26
+  for index=first,last do
+   local id=members[index]
+   local only=tracked and #tracked==1 and tracked[1]==id
+   local origin=active[id]
+   local key="effect_track_target_"..(index-first+1)
+   local suffix=origin=="player"and"  ·  On you"or origin=="target"and"  ·  On your target"or""
+   local title="Version "..index.."  ·  ID "..id..suffix
+   local value=only and"Tracking this version"or"Track this version"
+   row(key,title,value,x,y,w,not only,nil,origin~=nil)
+   local label=s.labels[key.."_label"]
+   if origin and label then ui.colour(label.style,0.8824,0.7490,0.4784,1)end
+   ui.bindEffect(key,id)
+   y=y+31
+  end
+  return y+4
+ end
  local function effectDetails(ctx,x,y,w,ph,previewWanted,rule)
   local id=ctx.ruleID
   local config=ctx.config
@@ -486,8 +528,8 @@ function U.new(ui,parent)
   local iconEnabled=options.auras.watch[id]==true
   local frameEnabled=rule~=nil and rule.enabled==true
   local alertEnabled=options.auras.alerts[id]==true
-  local helperEnabled=detail and detail.helperSelected==true or not detail and options.auras.hot_helper_ids[id]==true
-  if detail and detail.members then iconEnabled=detail.iconSelected==true;alertEnabled=detail.alertSelected==true end
+  local tracked=detail and detail.iconMembers
+  if tracked then iconEnabled=#tracked>0;alertEnabled=detail.alertSelected==true end
   local name=ctx.ruleName or("Effect "..id)
   local previewRoom=w<600 and 132 or 176
   local infoX=x+102
@@ -519,8 +561,10 @@ function U.new(ui,parent)
   elseif alertEnabled and not ctx.raidTrackerAvailable then
    alertNote="Raid tracker unavailable."
   end
-  local groupNote=variants>1 and("Changes apply to all "..variants.." versions.")or alertNote
-  if variants>64 then groupNote=variants.." versions · raid tracking checks 64 IDs"end
+  local groupNote=alertNote
+  if variants>1 then
+   groupNote=tracked and #tracked>0 and("Showing icons for "..#tracked.." of "..variants.." versions.")or"Choose a spell version to display."
+  end
   line("effect_detail_note",groupNote,infoX,y+37,infoW,16,10,true)
   if ui.effectPreview then
    local geometry=config.settings[config.view.layout]
@@ -535,15 +579,14 @@ function U.new(ui,parent)
   s.switchStates.effect_watch_detail=iconEnabled
   s.switchStates.rule_enabled=frameEnabled
   s.switchStates.effect_alert_detail=alertEnabled
-  s.switchStates.effect_hot_helper_detail=helperEnabled
-  local controls={
-   {"effect_watch_detail","Show icon",on(iconEnabled),effect=true},
-   {"rule_enabled","Change frame appearance",on(frameEnabled)},
-   {"effect_alert_detail","Show screen alert · debuffs only",on(alertEnabled),effect=true}
-  }
-  if ctx.effectKindCode=="buff"then controls[#controls+1]={"effect_hot_helper_detail","Use HoT tracking helper",on(helperEnabled),effect=true}end
+  local controls={{"effect_watch_detail","Show icon",on(iconEnabled),effect=true}}
+  if tracked and #tracked>0 and #tracked<variants then
+   controls[#controls+1]={"effect_track_all","Icon tracking","Track all versions",effect=true}
+  end
+  controls[#controls+1]={"rule_enabled","Change frame appearance",on(frameEnabled)}
+  controls[#controls+1]={"effect_alert_detail","Show screen alert · debuffs only",on(alertEnabled),effect=true}
   if iconEnabled then
-   local priority=options.auras.priorities[id]
+   local priority=options.auras.priorities[tracked and tracked[1]or id]
    controls[#controls+1]={"effect_priority_detail","Icon priority",priority==2 and"Urgent"or priority==1 and"High"or"Normal",effect=true}
   end
   if frameEnabled then
@@ -555,7 +598,9 @@ function U.new(ui,parent)
    controls[#controls+1]={"rule_priority","Frame appearance priority",priority}
   end
   if rule then controls[#controls+1]={"rule_remove","Saved frame appearance","Remove"}end
-  drawForm(controls,x,y+55,w,ph)
+  local formY=y+55
+  if variants>1 then formY=effectVersions(ctx,x,formY,w,ph,detail)end
+  drawForm(controls,x,formY,w,ph)
  end
  local shareFields={}
  local function shareField(id,session,value,x,y,w,limit)
@@ -638,7 +683,7 @@ function U.new(ui,parent)
   local options=ctx.config.options;local a=options.auras;local i=options.indicators
   local rule=ctx.effectDetail and ctx.effectDetail.rule or ctx.ruleID and W.rule(a,ctx.ruleID)
   s.switchStates={appearance_role_icon=options.appearance.role_icon,mana=ctx.config.settings.display.show_mana,show_distance=options.appearance.show_distance,
-   return_target=options.input.return_target,raid_tracker=a.raid_tracker,target_buffs_only=a.target_buffs_only,ordering_enabled=options.member_layout.ordering.enabled and options.member_layout.enabled,
+   return_target=options.input.return_target,raid_tracker=a.raid_tracker,ordering_enabled=options.member_layout.ordering.enabled and options.member_layout.enabled,
    ind_target=i.target,ind_hover=i.hover,ind_health=i.low_health,ind_mana=i.low_mana,large_alerts=a.large_alerts,
    hots=a.hots,debuffs=a.debuffs,addon_frames=ctx.config.visibility.frames,
    icon_grouped=options.aura_icons.grouped~=false}
@@ -748,10 +793,7 @@ function U.new(ui,parent)
     {"native_toggle","Game's original frames",ctx.nativeFrameLabel or"Hide / Return original raid frames",ctx.canToggle},
     {"general_targeting","Targeting & tracking",heading=true},
     {"return_target","Return previous raid target",on(o.input.return_target)},
-    {"raid_tracker","Experimental raid tracker",on(o.auras.raid_tracker),ctx.raidTrackerAvailable or o.auras.raid_tracker},
-    {"general_buff_tracking","Buff tracking",heading=true,keep=3},
-    {"target_buffs_only","HoT tracking helper",on(o.auras.target_buffs_only)},
-    {"target_buffs_note","Choose its HoTs under Buffs & Debuffs; other effects track normally.",note=true}}
+    {"raid_tracker","Experimental raid tracker",on(o.auras.raid_tracker),ctx.raidTrackerAvailable or o.auras.raid_tracker}}
    if ctx.pages>1 then
     controls[#controls+1]={"raid_previous","Raid members: page "..ctx.page.." of "..ctx.pages,"Previous members",ctx.page>1}
     controls[#controls+1]={"raid_next","Raid member pages","Next members",ctx.page<ctx.pages}

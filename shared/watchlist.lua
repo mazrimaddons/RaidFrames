@@ -5,7 +5,7 @@ local Colours=require("Mazrim_Raid_Frames/shared/colours")
 local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local W={contract=1,revisionSnapshotContract=1,selectedOnlyContract=1,priorityContract=1,frameRulesContract=Colours.contract==1 and 1 or 0,MAX_ENTRIES=256,MAX_ID=9007199254740991,
   commonEffectsContract=Common.contract==1 and Common.count==230 and 1 or 0}
-W.targetBuffPolicyContract=2
+W.targetBuffPolicyContract=3
 local palette={red={0.88,0.20,0.22},amber={0.93,0.62,0.12},purple={0.63,0.36,0.85},
   blue={0.20,0.56,0.88},green={0.24,0.73,0.39}}
 local order={"none","red","amber","purple","blue","green"}
@@ -43,7 +43,7 @@ function W.validate(raw)
   if raw==nil then raw={}end
   if not keys(raw,{hots=true,debuffs=true,selected_only=true,watch=true,debuff_colours=true,priorities=true,frame_rules=true,raid_tracker=true,large_alerts=true,alerts=true,scan_policy=true,target_buffs_only=true,hot_helper_ids=true})then return nil end
   local out={hots=true,debuffs=true,selected_only=true,watch={},debuff_colours={},priorities={},frame_rules={},raid_tracker=true,large_alerts=false,alerts={},scan_policy="balanced",target_buffs_only=false,hot_helper_ids={}}
-  -- Retain the old boolean in saved files/profiles for compatibility. Display
+  -- Read the retired helper fields for saved profiles and share codes. Display
   -- always requires explicit selection; false no longer enables all effects.
   for _,name in ipairs({"hots","debuffs","selected_only","raid_tracker","large_alerts","target_buffs_only"})do
     if raw[name]~=nil then if type(raw[name])~="boolean"then return nil end;out[name]=raw[name]end
@@ -96,17 +96,6 @@ function W.revisionSnapshot()
     if versioned and checked then rawBefore=raw;revisionBefore=revision;snapshot=checked;has=true end
     return checked,true
   end
-end
--- User-selected helper IDs express a tracking preference, never caster or HoT evidence.
-function W.targetOnly(options,id)
-  id=W.id(id)
-  return id~=nil and type(options)=="table"and options.target_buffs_only==true
-    and type(options.hot_helper_ids)=="table"and options.hot_helper_ids[id]==true
-end
-function W.setHelper(raw,id,enabled)
-  local out=W.validate(raw);id=W.id(id)
-  if not out or not id or type(enabled)~="boolean"then return nil end
-  out.hot_helper_ids[id]=enabled and true or nil;return W.validate(out)
 end
 function W.setAlert(raw,id,enabled)
   local out=W.validate(raw);id=W.id(id)
@@ -211,7 +200,9 @@ function W.setMany(raw,ids,action,value)
   if action=="rule"then
     accepted=value~=false and rule(value)or nil
     if value~=false and not accepted then return nil end
-  elseif action=="icon"or action=="alert"or action=="helper"then
+  elseif action=="trackVersion"then
+    if W.id(value)~=value or value==nil then return nil end
+  elseif action=="icon"or action=="alert"then
     if type(value)~="boolean"then return nil end
   elseif action=="priority"then
     if value~=0 and value~=1 and value~=2 then return nil end
@@ -220,9 +211,11 @@ function W.setMany(raw,ids,action,value)
   for _,id in ipairs(ids)do
     if W.id(id)~=id or seen[id]then return nil end
     seen[id]=true
-    if action=="icon"then out.watch[id]=value and true or nil;if not value then out.priorities[id]=nil end
+    if action=="icon"or action=="trackVersion"then
+      local enabled=action=="icon"and value==true or action=="trackVersion"and id==value
+      out.watch[id]=enabled and true or nil
+      if not enabled then out.priorities[id]=nil end
     elseif action=="alert"then out.alerts[id]=value and true or nil
-    elseif action=="helper"then out.hot_helper_ids[id]=value and true or nil
     elseif action=="priority"then
       if not out.watch[id]then return nil end
       out.priorities[id]=value~=0 and value or nil
@@ -230,6 +223,7 @@ function W.setMany(raw,ids,action,value)
       out.frame_rules[id]=accepted and rule(accepted)or nil;out.debuff_colours[id]=nil
     end
   end
+  if action=="trackVersion"and not seen[value]then return nil end
   return W.validate(out)
 end
 return W
