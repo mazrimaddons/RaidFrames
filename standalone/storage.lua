@@ -5,7 +5,7 @@ local S={PATH="Mazrim_Raid_Frames/.data/settings.txt",TUTORIAL_PATH="Mazrim_Raid
   preferencesContract=Preferences.contract==1 and 1 or 0,profileContract=Preferences.contract==1 and 1 or 0,
   managementHintContract=Preferences.helpContract==1 and 1 or 0,watchlistContract=Preferences.watchlistContract==1 and 1 or 0,
   priorityContract=Preferences.priorityContract==1 and 1 or 0}
-S.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==2 and 2 or 0
+S.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==3 and 3 or 0
 function S.defaults()
   return {schema=S.SCHEMA,settings=F.settings(),view={layout="raid",preview_count=25,position="left",compact=false,locked=true},
     options=Preferences.defaults(),profiles={},help=Preferences.helpDefaults(),visibility=Preferences.visibilityDefaults(),controls={hover=false,native_frames="unchanged"}}

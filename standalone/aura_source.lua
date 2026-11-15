@@ -130,7 +130,7 @@ function M.new(api,alive,reader)
         end}
       end}
   end
-  local function observeRows(rows,now,targetOnly,deepOnly,ordinaryLimit)
+  local function observeRows(rows,now,targetOnly,deepOnly,ordinaryLimit,targetFirst)
     if not current()or not B.finite(now)or now<0 or type(rows)~="table"or #rows>50 then return {}end
     if type(reader)~="table"or reader.memberAuraContract~=1 or type(reader.observeAuras)~="function"then
       s.status="Shared aura observer unavailable";return {}
@@ -169,7 +169,7 @@ function M.new(api,alive,reader)
         result[#result+1]=normalized
       end
     end
-    local selectors=targetOnly and{"target"}or preferPlayer and{"player","target"}or{"target","player"}
+    local selectors=targetOnly and{"target"}or preferPlayer and not targetFirst and{"player","target"}or{"target","player"}
     for _,selector in ipairs(selectors)do
       if allowance(now)<=0 or not deepAvailable(now)then break end
       local id=selectorIdentity(selector);observe(selector,id and accepted[id]or nil)
@@ -185,8 +185,8 @@ function M.new(api,alive,reader)
     s.status=#result>0 and"Partial member effects; own HoTs and dispel ability unknown"or"Member aura observations unavailable"
     return result
   end
-  function s.deep(rows,now)coalescing=true;return observeRows(rows,now,false,true)end
-  function s.sample(rows,now,ordinaryLimit)return observeRows(rows,now,false,false,ordinaryLimit)end
+  function s.deep(rows,now,targetFirst)coalescing=true;return observeRows(rows,now,false,true,nil,targetFirst)end
+  function s.sample(rows,now,ordinaryLimit,targetFirst)return observeRows(rows,now,false,false,ordinaryLimit,targetFirst)end
   function s.target(rows,now)return observeRows(rows,now,true)end
   function s.close()closed=true;requestTimes={};lastDeep=nil;s.status="Aura observations stopped";return true end
   return s

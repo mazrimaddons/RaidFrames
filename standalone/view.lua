@@ -25,7 +25,7 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.86",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.91",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -53,15 +53,16 @@ local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract
     and Preferences.priorityContract==1 and S.priorityContract==1 and 1 or 0,
   targetTraceContract=Trace.contract==1 and Trace.saveFormatContract==1 and Studio.targetTraceContract==1 and 1 or 0,
   nameRefreshModeContract=Studio.nameRefreshModeContract==1 and 1 or 0}
-V.targetBuffPolicyContract=Watch.targetBuffPolicyContract==2 and Auras.targetBuffPolicyContract==2
-  and Library.targetBuffPolicyContract==2 and ProfileShare.targetBuffPolicyContract==2 and Studio.targetBuffPolicyContract==2 and 2 or 0
-V.targetBuffPolicyContract=V.targetBuffPolicyContract==2 and Preferences.targetBuffPolicyContract==2
-  and C.targetBuffPolicyContract==2 and S.targetBuffPolicyContract==2 and 2 or 0
+V.targetBuffPolicyContract=Watch.targetBuffPolicyContract==3 and Auras.targetBuffPolicyContract==3
+  and Library.targetBuffPolicyContract==3 and ProfileShare.targetBuffPolicyContract==3 and Studio.targetBuffPolicyContract==3 and 3 or 0
+V.targetBuffPolicyContract=V.targetBuffPolicyContract==3 and Preferences.targetBuffPolicyContract==3
+  and C.targetBuffPolicyContract==3 and S.targetBuffPolicyContract==3 and 3 or 0
 -- Original Raid Crest geometry from the selected 28px design, quantised to26px.
 -- Decorative colour pieces have no input surface and share the owned button.
 local CREST_PALETTE={edge={124/255,116/255,87/255},gold={198/255,180/255,127/255},
   light={220/255,229/255,218/255},blue={108/255,161/255,187/255},mid={57/255,116/255,140/255},
   deep={33/255,56/255,66/255},paper={178/255,187/255,167/255}}
+local TARGET_EFFECT_FRESH_MS=500
 local CREST_RECTS={{4,1,20,2,"gold"},{2,3,24,15,"edge"},{4,18,20,4,"edge"},{7,22,14,3,"edge"},{11,25,6,2,"edge"},
   {4,4,20,13,"deep"},{6,17,16,4,"deep"},{9,21,10,2,"deep"},{5,4,18,1,"blue"},
   {12,6,4,4,"light"},{10,11,8,7,"blue"},{5,9,3,3,"paper"},{4,13,5,5,"mid"},{20,9,3,3,"paper"},{19,13,5,5,"mid"}}
@@ -786,6 +787,13 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     s.text_editor_release_until=nil
     return false
   end
+  local function target_effect_seen(id,now)
+    local sample=s.target_effects
+    if not sample or s.target_dirty or sample.selected~=s.selected_identity
+      or not B.finite(now)or now<sample.at then return nil end
+    local expires=sample.buffs[id] or sample.debuffs[id]
+    if expires and now<expires then return sample.origin end
+  end
   local function commit_effect_choices(changed,limit)
     if not changed then s.studio_notice=limit;return false end
     s.controller.config.options.auras=changed
@@ -1167,12 +1175,6 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         if not s.settings_open then s.hover_enabled=s.hover.arm()==true end
       end
       s.studio_notice="Return to the previous raid target when your mouse leaves the frames."
-    elseif name=="target_buffs_only"then
-      local on=not s.controller.config.options.auras.target_buffs_only
-      s.controller.setOption("auras","target_buffs_only",on)
-      s.last_aura=nil
-      s.studio_notice=on and"HoT helper on. Choose its effects in Buffs & Debuffs. Other healers' HoTs may appear too. Save settings to keep this choice."
-        or"Raid-wide buff tracking restored. Save settings to keep this choice."
     elseif name=="raid_scan_policy"then
       s.controller.setOption("auras","scan_policy",s.controller.config.options.auras.scan_policy=="balanced"and"debuff_priority"or"balanced")
       s.studio_notice="Debuff priority checks debuffs more often and buffs less often."
@@ -1210,7 +1212,28 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       local id=Watch.id(profileKey)
       if not id or s.rule_id or s.studio.effectSection~="icons"then return end
       s.effect_list_page=s.studio.section
-      s.rule_id=id;s.studio.section=1;s.studio.materialsOpen=false
+      s.rule_id=id;s.studio.section=1;s.studio.effectVersionPage=1;s.studio.materialsOpen=false
+    elseif name=="effect_versions_previous"or name=="effect_versions_next"or name=="effect_versions_target"then
+      if not s.rule_id or profileKey~=s.rule_id then return end
+      local page=s.studio.effectVersionPage or 1
+      if name=="effect_versions_target"then
+        s.studio.effectVersionPage=s.studio.effectVersionTargetPage or page
+      else
+        s.studio.effectVersionPage=math.max(1,page+(name=="effect_versions_next"and 1 or -1))
+      end
+    elseif name:match("^effect_track_target_%d+$")or name=="effect_track_all"then
+      if not s.settings_open or not s.rule_id or s.studio.page~="effects"or s.studio.effectSection~="icons"then return end
+      local a=s.controller.config.options.auras
+      local group=s.effectLibrary.group(s.rule_id,a)
+      if not group then return end
+      if name=="effect_track_all"then
+        if profileKey~=s.rule_id then return end
+        commit_effect_choices(Watch.setMany(a,group.members,"icon",true),"Too many spell versions selected. Remove another effect first.")
+      else
+        local id=Watch.id(profileKey)
+        if not id then return end
+        commit_effect_choices(Watch.setMany(a,group.members,"trackVersion",id),"This version could not be tracked.")
+      end
     elseif name=="rule_back"then
       s.rule_id=nil;s.studio.section=s.effect_list_page or 1;s.studio.materialsOpen=false
     elseif name=="material_back"then
@@ -1226,13 +1249,13 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       r.material=material;r.colour=Materials.defaultColour(material)
       commit_effect_choices(Watch.setMany(a,group.members,"rule",r),"Too many spell versions selected. Remove another effect first.")
       s.studio.materialsOpen=false;s.studio.section=s.effect_detail_page or 1
-    elseif name=="effect_watch_detail"or name=="effect_alert_detail"or name=="effect_priority_detail"or name=="effect_hot_helper_detail"or name:sub(1,5)=="rule_"then
+    elseif name=="effect_watch_detail"or name=="effect_alert_detail"or name=="effect_priority_detail"or name:sub(1,5)=="rule_"then
       local id=Watch.id(profileKey)
       if not id or id~=s.rule_id or s.studio.effectSection~="icons"then return end
       local a=s.controller.config.options.auras
       local group=s.effectLibrary.group(id,a);if not group then return end
       if name=="effect_watch_detail"then
-        commit_effect_choices(Watch.setMany(a,group.members,"icon",not group.selected),"Too many spell versions selected. Remove another effect first.")
+        commit_effect_choices(Watch.setMany(a,group.members,"icon",#group.iconMembers==0),"Too many spell versions selected. Remove another effect first.")
       elseif name=="effect_alert_detail"then
         local enabled=not group.alertSelected
         local effect=enabled and group
@@ -1243,15 +1266,12 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         else
           commit_effect_choices(Watch.setMany(a,group.members,"alert",enabled),"Too many spell versions selected. Remove another effect first.")
         end
-      elseif name=="effect_hot_helper_detail"then
-        if group.kindCode~="buff"then return end
-        local enabled=not group.helperSelected
-        commit_effect_choices(Watch.setMany(a,group.members,"helper",enabled),"Too many HoT versions selected. Remove another effect first.")
-        s.last_aura=nil
-        s.studio_notice=enabled and(a.target_buffs_only and"This effect now uses the HoT helper. Other buffs track normally."or"Chosen for the HoT helper. Turn it on in General Settings, then save settings.")or"This effect uses normal buff tracking again."
       elseif name=="effect_priority_detail"then
-        local level=group.selected and(Watch.priority(a,id)+1)%3 or nil
-        if level~=nil then commit_effect_choices(Watch.setMany(a,group.members,"priority",level),"Icon priority could not be changed.")end
+        local first=group.iconMembers[1]
+        if first then
+          local level=(Watch.priority(a,first)+1)%3
+          commit_effect_choices(Watch.setMany(a,group.iconMembers,"priority",level),"Icon priority could not be changed.")
+        end
       else
         local r=group.rule
         if name=="rule_enabled"then
@@ -2530,6 +2550,29 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       {selected=s.controller.mode=="preview"and row.selected==true or(I.accepts(row.identity)and row.identity==s.selected_identity),
         preview=s.controller.mode=="preview",auras=observed})
   end
+  local function remember_target_effects(sample,now)
+    if sample.coverage~="observed"then return end
+    local prior=s.target_effects
+    local sameActor=prior and prior.identity==sample.identity and prior.origin==sample.origin and now>=prior.at
+    local result={identity=sample.identity,selected=s.selected_identity,origin=sample.origin,at=now}
+    for _,kind in ipairs({"buffs","debuffs"})do
+      local effects=sample[kind]
+      if sample[kind.."Known"]==true and type(effects)=="table"then
+        local ids={}
+        for _,effect in ipairs(effects)do
+          local id=type(effect)=="table"and Watch.id(effect.id)
+          if id then
+            local duration=effect.timeKnown==true and B.finite(effect.remainingMs)and effect.remainingMs or TARGET_EFFECT_FRESH_MS
+            ids[id]=now+math.min(duration,TARGET_EFFECT_FRESH_MS)
+          end
+        end
+        result[kind]=ids
+      else
+        result[kind]=sameActor and prior[kind] or {}
+      end
+    end
+    s.target_effects=result
+  end
   function s.sample_visual(now,data)
     trace_call("clock",now)
     local previous=s.selected_identity
@@ -2550,8 +2593,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     s.auraModel.retain(ids)
     local prefs=s.controller.config.options.auras
     local tracking=false
-    local scanPrefs=s.effectLibrary.raidOptions(prefs,s.controller.revision)
-    if raidTracker then tracking=raidTracker.configure(scanPrefs or{raid_tracker=false},s.controller.revision)==true end
+    if raidTracker then tracking=raidTracker.configure(prefs,s.controller.revision)==true end
     if type(B.member(auraSource,"setSharedBudgetEnabled"))=="function"then auraSource.setSharedBudgetEnabled(tracking)end
     if not prefs.large_alerts then s.raidAlerts.clearVisible()end
     local auraDemand=false
@@ -2559,6 +2601,8 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if not auraDemand then for _,rule in pairs(prefs.frame_rules)do if rule.enabled then auraDemand=true;break end end end
     if not auraDemand and prefs.raid_tracker and prefs.large_alerts then for _ in pairs(prefs.alerts)do auraDemand=true;break end end
     local discover=s.settings_open and s.studio and s.studio.page=="effects" and s.studio.effectSection=="icons"
+    local targetDetail=discover and s.rule_id~=nil
+    if not targetDetail or s.selected_identity~=previous then s.target_effects=nil end
     if not auraDemand and not discover then
       -- Pause reads without dropping same-actor deadline evidence. retain() above still clears departed/replaced actors.
       s.aura_demand_active=false;s.aura_status="No selected effects require scanning. Open Buffs & Debuffs to discover effects.";return
@@ -2574,12 +2618,10 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       end end end
       if due and(tracking)and type(B.member(auraSource,"deep"))=="function"and type(B.member(auraSource,"sharedBudget"))=="function"then
         s.last_aura=now
-        local deepRead=prefs.target_buffs_only and B.member(auraSource,"target")or auraSource.deep
-        local ok,deep=pcall(deepRead,data.rows,now);if ok then append(deep)end
+        local ok,deep=pcall(auraSource.deep,data.rows,now,targetDetail);if ok then append(deep)end
         local ordinaryNeed=discover==true
-        local ordinaryPrefs=prefs.target_buffs_only and(scanPrefs or prefs)or prefs
-        if prefs.hots~=false or prefs.debuffs~=false then for _ in pairs(ordinaryPrefs.watch)do ordinaryNeed=true;break end end
-        for _,rule in pairs(ordinaryPrefs.frame_rules)do if rule.enabled and(rule.kind=="buff"or rule.kind=="any"or prefs.target_buffs_only)then ordinaryNeed=true;break end end
+        if prefs.hots~=false or prefs.debuffs~=false then for _ in pairs(prefs.watch)do ordinaryNeed=true;break end end
+        for _,rule in pairs(prefs.frame_rules)do if rule.enabled and(rule.kind=="buff"or rule.kind=="any")then ordinaryNeed=true;break end end
         local ordinarySlots=ordinaryNeed and(prefs.scan_policy=="debuff_priority"and 1 or 2)or 0
         if auraSource.eligibleBudgetContract==1 and type(B.member(auraSource,"ordinaryCapacity"))=="function"then
           local ok,capacity=pcall(auraSource.ordinaryCapacity,data.rows,now,ordinarySlots)
@@ -2607,28 +2649,25 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
           end
         end
         if owner_alive()and ordinarySlots>0 then local yes,rest=pcall(auraSource.sample,data.rows,now,ordinarySlots);if yes then append(rest)end end
-      elseif prefs.target_buffs_only then
-        s.last_aura=now
-        local sample=B.member(auraSource,"target")
-        if type(sample)=="function"then local ok,value=pcall(sample,data.rows,now);if ok then append(value)end end
-        local ordinaryNeed=discover
-        for _ in pairs((scanPrefs or prefs).watch)do ordinaryNeed=true;break end
-        for _,rule in pairs((scanPrefs or prefs).frame_rules)do if rule.enabled then ordinaryNeed=true;break end end
-        if ordinaryNeed and type(B.member(auraSource,"sample"))=="function"then
-          local ok,value=pcall(auraSource.sample,data.rows,now,2);if ok then append(value)end
-        end
       else
         local sample=type(targetSample)=="function"and targetSample or B.member(auraSource,"sample")
         if sample~=targetSample then s.last_aura=now end
-        if type(sample)=="function"then local ok,value=pcall(sample,data.rows,now);if ok then append(value)end end
+        if type(sample)=="function"then local ok,value=pcall(sample,data.rows,now,nil,targetDetail);if ok then append(value)end end
       end
       if not owner_alive()then s.auraModel.clear();return end
+      if targetDetail and not s.target_dirty then
+        for _,sample in ipairs(observations)do
+          if (sample.origin=="target"and sample.identity==s.selected_identity)
+            or (sample.origin=="player"and s.selected_identity==nil) then
+            remember_target_effects(sample,now)
+          end
+        end
+      end
       s.effectLibrary.observe(observations)
       s.auraModel.replace(observations,now,s.controller.config.options.auras,s.controller.revision)
       local count=0;for i=1,#observations do if observations[i].coverage=="observed"then count=count+1 end end
       s.aura_status=count>0 and("Observed effects: "..count..". ~ = last-seen; other effects unknown.")or"Effects unknown here. Available members are observed over time."
       s.aura_status=s.aura_status.." HoT owner / dispel unknown."
-      if prefs.target_buffs_only then s.aura_status=s.aura_status.." Chosen HoTs update only while targeted; caster unknown."end
     end
   end
   -- Selector hint from the existing display sample only. The comparison owner
@@ -2723,7 +2762,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if s.delete_pending and not s.controller.config.profiles[s.delete_pending]then s.delete_pending=nil end
     local locked=s.controller.config.view.locked~=false
     local _,traceActive=trace_call("isActive");local _,traceStatus=trace_call("summary");local _,capture=trace_call("captureId")
-    local effectRows,effectDetail={},nil
+    local effectRows,effectDetail,targetVersions={},nil,{}
     s.effectLibrary.prioritize(s.controller.config.options.auras,s.controller.revision)
     if s.studio.page=="effects" and s.studio.effectSection=="icons"then
       s.effectLibrary.enrich(B.now(api),function()
@@ -2734,6 +2773,12 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       local auras=s.controller.config.options.auras
       if s.rule_id then
         effectDetail=s.effectLibrary.studioRows("browse",s.rule_id,auras,s.controller.revision)[1]
+        local now=B.now(api)
+        if effectDetail then
+          for _,id in ipairs(effectDetail.members)do
+            targetVersions[id]=target_effect_seen(id,now)
+          end
+        end
       else
         effectRows=s.effectLibrary.studioRows(s.effect_scope,s.effect_query,auras,s.controller.revision)
       end
@@ -2785,7 +2830,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       feedbackStatus=s.last_input_status or("Target feedback: "..(B.member(feedback,"nameStatus")or"unavailable")),
       profileNames=names,profileName=s.profile_name,profileStatus=s.controller.profile_status,deletePending=s.delete_pending,profileShare=s.profile_share,profileLoad=s.profile_load,alertWarning=s.alert_warning,
       dimensionsStatus=s.dimensions_notice,effectScope=s.effect_scope,effectRows=effectRows,effectQuery=s.effect_query,
-      effectDetail=effectDetail,ruleName=effectDetail and effectDetail.name,effectKind=effectDetail and effectDetail.kind,
+      effectDetail=effectDetail,targetEffectVersions=targetVersions,ruleName=effectDetail and effectDetail.name,effectKind=effectDetail and effectDetail.kind,
       effectKindCode=effectDetail and effectDetail.kindCode,effectIcon=effectDetail and effectDetail.icon,
       traceAvailable=trace~=nil,traceActive=traceActive==true,traceStatus=s.trace_save_notice or traceStatus,
       traceReport=capture~=nil and traceActive~=true,traceSaved=capture~=nil and s.trace_saved_capture==capture,
@@ -2970,7 +3015,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     return true
   end
   function s.hide()
-    s.profile_share=nil;s.profile_load=nil;s.alert_warning=nil
+    s.profile_share=nil;s.profile_load=nil;s.alert_warning=nil;s.target_effects=nil
     s.stop_tour()
     if s.member_drag then s.end_member_drag(false,true)end
     cancel_colour()
@@ -3584,7 +3629,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     return ready
   end
   function s.close()
-    s.profile_share=nil;s.profile_load=nil;s.alert_warning=nil
+    s.profile_share=nil;s.profile_load=nil;s.alert_warning=nil;s.target_effects=nil
     s.stop_tour()
     s.cancel_text_drag();s.text_editor=nil
     trace_call("close")
