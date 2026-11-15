@@ -564,7 +564,15 @@ local function paintText(c,row,display,offline,layout,palette,ui,options,w,h)
    if c.distance then ui.call(c.distance,"EnablePick",false);ui.call(c.distance,"Clickable",false);ui.call(c.distance.style,"SetEllipsis",true);ui.call(c.distance.style,"SetShadow",true)end
   end
   local known=not offline and row.rangeKnown==true and finite(row.distanceM)and row.distanceM>=0
-  distanceValue=known and(string.format("%.0f",math.floor(row.distanceM+.5)).." m")or"?"
+  distanceValue="?"
+  if known then
+   local metres=math.floor(row.distanceM+.5)
+   if metres>=1000 then
+    distanceValue=string.format("%.1f km",metres/1000)
+   else
+    distanceValue=string.format("%.0f m",metres)
+   end
+  end
   local width=textWidth(c,"distance",distanceValue,font);distanceWidth=width
   dw=math.max(1,math.min(width,w-2));dh=math.max(1,math.min(t.nh,h-2));dx=math.max(1,w-3-dw);dy=math.max(1,h-dh-1)
   dx,dy,dw,dh=anchoredText(positions and positions.distance,width,dh,w,h,dx,dy,dw)

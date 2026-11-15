@@ -3,7 +3,7 @@
 local F=require("Mazrim_Raid_Frames/shared/foundation")
 local P=require("Mazrim_Raid_Frames/shared/preferences")
 local S={contract=1,CHAT_LIMIT=120,MAX_CODE=49152,MAX_PARTS=32}
-S.targetBuffPolicyContract=2
+S.targetBuffPolicyContract=3
 local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 local values={}
 for n=1,#alphabet do values[alphabet:sub(n,n)]=n-1 end

@@ -9,7 +9,7 @@ local P={contract=1,helpContract=1,watchlistContract=Watchlist.contract==1 and W
   expandedStylesContract=Themes.expandedStylesContract==1 and type(Themes.accepts)=="function"and 1 or 0,
   overhaulContract=Colours.overhaulContract==1 and 1 or 0,visibilityContract=1,roleIconToggleContract=1,
   frameRulesContract=Watchlist.frameRulesContract==1 and 1 or 0,MAX_PROFILES=8}
-P.targetBuffPolicyContract=Watchlist.targetBuffPolicyContract==2 and 2 or 0
+P.targetBuffPolicyContract=Watchlist.targetBuffPolicyContract==3 and 3 or 0
 -- A full active setup plus all eight allowed profiles. Per snapshot reserve:
 -- fixed settings/view/options fields and containers (128), four scalar aura
 -- maps plus six nodes per frame rule (10 per ID), four nodes per assignment,
