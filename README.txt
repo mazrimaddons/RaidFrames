@@ -8,7 +8,11 @@ Keep your raid organised and important information easy to see.
 - Selected buff/debuff icons, timers, frame effects and optional screen alerts.
 - Low-health and low-mana indicators and optional distance readings.
 - Native raid-management access, saved profiles and profile sharing.
-- A short first-use tutorial and replayable Quick tour.
+- A one-time welcome card for new installations.
+
+#Version 0.2.92
+
+New installations show the welcome card once.
 
 #Version 0.2.91
 
@@ -21,7 +25,7 @@ hover sweep and requests them again when the pointer leaves the raid frames.
 If their identity and readable health cannot be confirmed, it keeps the last
 hovered target. The option is off by default and only supports raid members.
 
-Settings, profiles and tutorial progress are saved in the manager-preserved
+Settings, profiles and the welcome record are saved in the manager-preserved
 `.data` folder. Keep that folder when updating manually.
 
 #Install
@@ -33,7 +37,7 @@ Use installation folder `Mazrim_Raid_Frames` and repository branch `main`.
 For manual installation, copy the `Mazrim_Raid_Frames` folder into
 `Documents/AAClassic/Addon/` and add `Mazrim_Raid_Frames` to `Addon/addons.txt`.
 Use the UPDATE ZIP to replace matching files in an existing installation.
-Fully restart the game after updating, then confirm 0.2.91 in the settings.
+Fully restart the game after updating, then confirm 0.2.92 in the settings.
 
 #Known limitations
 

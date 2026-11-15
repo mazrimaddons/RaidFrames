@@ -1,5 +1,5 @@
 -- Standalone lifecycle. Shared data reader and renderer are first-party modules.
-local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.91",
+local addon={name="Mazrim Raid Frames",author="Mazrim",version="0.2.92",
   desc="Self/target frames. Preview build."}
 local current,generation,opening=nil,0,false
 local function member(object,key)
@@ -164,7 +164,7 @@ local function open()
     if not alive()then s.starting=false;closeState(s);return false end
     local targetAttempt
     if capability and available==true then targetAttempt=target.attempt end
-    local nativeControls={selection=selection,auraSource=auraSource,trace=trace,rememberControls=true,firstUseTour=true}
+    local nativeControls={selection=selection,auraSource=auraSource,trace=trace,rememberControls=true,firstUseWelcome=true}
     local visibilityOK,Visibility=pcall(require,"Mazrim_Raid_Frames/standalone/native_visibility")
     if visibilityOK and type(Visibility)=="table"and Visibility.contract==1 then
       local function visibilityAlive()
