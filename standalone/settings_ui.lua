@@ -698,7 +698,7 @@ function U.new(ui,parent)
   end
   for i=1,#all do display(all[i],false)end
   for id,o in pairs(ui.buttons)do
-   if id:sub(1,5)~="tour_" and o~=ui.buttons.cog and o~=ui.buttons.manager_shortcut and o~=ui.buttons.hud_manager and o~=ui.buttons.hud_native and o~=ui.buttons.hud_addon and o~=ui.buttons.hud_hover and o~=ui.buttons.hud_sort and o~=ui.buttons.hud_reset then display(o,false)end
+   if id~="welcome_drag" and id~="welcome_done" and o~=ui.buttons.cog and o~=ui.buttons.manager_shortcut and o~=ui.buttons.hud_manager and o~=ui.buttons.hud_native and o~=ui.buttons.hud_addon and o~=ui.buttons.hud_hover and o~=ui.buttons.hud_sort and o~=ui.buttons.hud_reset then display(o,false)end
   end
   local previewWanted={};s.textEditorGeometry=nil
   local pw=math.min(1170,w-32);local ph=math.min(803,h-32)
@@ -721,7 +721,6 @@ function U.new(ui,parent)
   end
   local infoY=ph-(ph<470 and 80 or 111)
   local infoEnabled=not ctx.picker and not ctx.resetPending and not ctx.profileLoad and not ctx.alertWarning
-  button("quick_tour",12,infoY-28,124,25,"Quick tour",infoEnabled)
   button("known_issues",12,infoY,124,25,"Known issues",infoEnabled,s.page=="known_issues")
   local left,top,cw=170,78,pw-194
   if s.page=="overview"then s.page="appearance"end
