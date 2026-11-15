@@ -12,6 +12,10 @@ local function identity(v)
     end
     return integer(v) and v>0
 end
+local function validName(value)
+    return type(value)=="string" and #value>0 and #value<=128
+        and not value:find("[%c|]") and not value:match("^%s*$")
+end
 local function decimalText(v)
     -- Classification only; do not return the parsed score or infer freshness.
     -- Matches the bounded Public target reader, with controls excluded.
@@ -223,8 +227,13 @@ function M.new(api)
             local playerKnown=playerOK and identity(playerID)
             local nameOK,name,nameWhy=read("GetUnitNameById",id)
             if nameWhy=="cancelled" then return unresolved(nameWhy) end
-            local nameKnown=nameOK and type(name)=="string" and #name>0 and #name<=128
-                and not name:find("%c") and not name:find("|",1,true) and not name:match("^%s*$")
+            local nameKnown=nameOK and validName(name)
+            if not nameKnown then
+                -- The raid slot can still have a name when the actor lookup is out of range.
+                nameOK,name,nameWhy=read("UnitName",token)
+                if nameWhy=="cancelled" then return unresolved(nameWhy) end
+                nameKnown=nameOK and validName(name)
+            end
             if not nameKnown then name=nil end
             local healthOK,hp,healthWhy=read("UnitHealth",token)
             if healthWhy=="cancelled" then return unresolved(healthWhy) end
@@ -333,8 +342,7 @@ function M.new(api)
             -- directly to X2Unit, without a GetUnitId prerequisite.
             local nameOK,name,nameWhy=read("UnitName")
             if nameWhy=="cancelled" then return unresolved(nameWhy) end
-            local nameKnown=nameOK and type(name)=="string" and #name>0 and #name<=128
-                and not name:find("%c") and not name:find("|",1,true) and not name:match("^%s*$")
+            local nameKnown=nameOK and validName(name)
             if not nameKnown then name=nil end
             local statusOK,offline,statusWhy=read("UnitIsOffline")
             if statusWhy=="cancelled" then return unresolved(statusWhy) end
