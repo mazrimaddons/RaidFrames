@@ -201,6 +201,7 @@ function S.new(api,alive)
     if v==nil then s.status="Default layout. Use Save settings to keep changes.";return S.defaults() end
     local cleaned=S.validate(v)
     if not cleaned then s.blocked=true;s.status="Unrecognised settings preserved; saving blocked.";return S.defaults() end
+    s.has_saved_settings=true
     -- Loading returns control intent only; the owning host applies it.
     s.status=cleaned.controls.hover and"Saved layout and control choices loaded."or"Saved layout loaded. Hover targeting stays off until enabled.";return cleaned
   end

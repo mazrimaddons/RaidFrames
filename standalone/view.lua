@@ -25,7 +25,7 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.91",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.92",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -88,7 +88,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
   local owner_alive
   local show,replace_handler
   s.storage=S.new(api,ownerCurrent);s.controller=C.new(s.storage.load());s.live=liveAdapter or L.new(api)
-  s.first_use_tour=B.member(nativeControls,"firstUseTour")==true
+  s.first_use_welcome=B.member(nativeControls,"firstUseWelcome")==true
   s.remember_controls=B.member(nativeControls,"rememberControls")==true
   s.hover_intent=s.remember_controls and s.controller.config.controls and s.controller.config.controls.hover==true or false
   local returnTarget=B.member(nativeControls,"returnTarget")
@@ -545,28 +545,28 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if commit and owner_alive()and s.visible then
       local read,x,y=B.offset(api,d.root,owner_alive)
       if read then
-        if d.kind=="tour"then s.tour_position={x=x,y=y}
+        if d.kind=="welcome"then s.welcome_position={x=x,y=y}
         elseif d.kind=="priority"then s.controller.setPriorityPosition(x,y)
         elseif d.kind=="dock"then s.controller.setDockPosition(x,y)
         else s.controller.setAlertPosition(x,y)end
       end
     end
     if commit and d.resume and owner_alive()and s.visible and not s.settings_open then s.hover_enabled=s.hover.arm()==true end
-    if d.kind~="tour"then rebuild_pick_geometry()end
+    if d.kind~="welcome"then rebuild_pick_geometry()end
     return true
   end
   function s.begin_aux_drag(root,kind)
     if not owner_alive()or not s.visible or s.aux_drag then return end
-    if kind=="tour"then
-      if not s.settings_open or not s.tour_step or s.tour_practice_drag or not s.cache[root]or not s.cache[root].Show then return end
+    if kind=="welcome"then
+      if not s.welcome_open or not s.cache[root]or not s.cache[root].Show then return end
     else
       local yes,shift=call(B.member(api,"Input"),"IsShiftKeyDown")
       if not yes or shift~=true then return end
     end
     local resume=s.hover.armed==true
-    if kind~="tour"then cancel_input()end
+    if kind~="welcome"then cancel_input()end
     if not owner_alive()or not s.visible or s.aux_drag then return end
-    if kind~="tour"then s.drag_click_block=true end
+    if kind~="welcome"then s.drag_click_block=true end
     if kind=="dock"then s.dock_click_block=true end
     s.aux_drag={root=root,kind=kind,resume=resume}
     local moved,value=call(root,"StartMoving")
@@ -1027,16 +1027,13 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       profile_share_action(name,profileKey);return
     end
     if name=="known_issues"then
-      s.stop_tour();s.ordering_menu=nil;s.delete_pending=nil
+      s.ordering_menu=nil;s.delete_pending=nil
       s.studio.select("known_issues");s.refresh();return
     end
     if s.studio.page=="known_issues"then
       if name=="studio_more"then s.studio.more();s.refresh();return end
       if name=="previous"or name=="next"then s.studio.stepPage(name=="next"and 1 or -1);s.refresh();return end
       if name:sub(1,4)=="tab_"then s.studio.select(name:sub(5));s.refresh();return end
-    end
-    if name=="quick_tour"or name:sub(1,5)=="tour_"then
-      s.step_tour(name);s.refresh();return
     end
     if name=="raid_aura_member"then
       local rows=s.raid_check_rows or{}
@@ -1412,6 +1409,10 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       end
       if not s.active or not s.visible or not s.cache[o] or s.cache[o].Show~=true or s.cache[o].enabled==false then return end
       if id:sub(1,4)=="hud_"and(not s.manager_help_open or not s.cache[s.manager_tip]or s.cache[s.manager_tip].Show~=true)then return end
+      if id=="welcome_done"then
+        if s.welcome_open and not s.aux_drag then s.close_welcome()end
+        return
+      end
       if id~="cog"and id~="manager_shortcut"and id:sub(1,4)~="hud_"and not s.settings_open then return end
       local ok=pcall(perform,id)
       if not ok or s.failed then s.fault() end
@@ -1425,270 +1426,61 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
   end
   local renderer_ui
   do
-    local steps={
-      {title="Raid Frames at a glance",lines={
-        "•  Click or hover to target",
-        "•  Move and style your raid frames",
-        "•  Auto-sort by class, set priorities and mark players",
-        "•  Track chosen buffs and debuffs, with screen alerts",
-        "•  Save and share layouts with profiles"}},
-      {title="Shield shortcuts",anchor="manager_shortcut",lines={
-        "Click the shield beside the cog for quick actions.",
-        "Toggle hover targeting, open raid management,",
-        "or show and hide either set of raid frames."}},
-      {title="Settings and Priority",anchor="tab_ordering",practice=true,lines={
-        "Appearance and Indicators change how the bars look.",
-        "General Settings controls frame size and spacing.",
-        "Layout Preset sorts each new raid by class the way you want.",
-        "Try Ctrl-dragging the healer between Raid and Priority."}},
-      {title="Help for a setting",page="appearance",label="appearance_role_icon_label",lines={
-        "Hover a setting's name for a short explanation.",
-        "Try the label at the arrow."}},
-      {title="Buffs & Debuffs",page="effects",anchor="effects_icons",lines={
-        "Search for an effect to choose an icon, frame tint",
-        "or screen alert. Drag the samples in Icon layout",
-        "to arrange the text and icons."}},
-      {title="Screen alerts",page="effects",section="tracker",anchor="effects_tracker",demo=true,lines={
-        "This is what a large debuff alert looks like.",
-        "Pick a debuff in Effects and turn on its Screen alert.",
-        "Use Screen alerts to enable alerts and move the text."}},
-      {title="Keep your setup",anchor="save",lines={
-        "Use Save settings to keep your changes.",
-        "Profiles lets you store and share different setups.",
-        "Open Quick tour anytime to run it again."}}
+    local lines={
+      "•  Click or hover to target",
+      "•  Move and style your raid frames",
+      "•  Auto-sort by class, set priorities and mark players",
+      "•  Track chosen buffs and debuffs, with screen alerts",
+      "•  Save and share layouts with profiles",
     }
-
-    function s.stop_tour()
-      local saved=s.tour_return
-      if saved and s.studio then
-        s.studio.page=saved.page;s.studio.section=saved.section
-        s.studio.appearanceSection=saved.appearance;s.studio.effectSection=saved.effects
-        s.studio.materialsOpen=saved.materials;s.rule_id=saved.rule
-      end
-      s.tour_step=nil;s.tour_return=nil;s.tour_started=nil;s.tour_anchor=nil
-      s.tour_position=nil;s.tour_priority=nil;s.tour_practice_drag=nil;s.tour_alert_demo=nil
-      show(s.tour_root,false);show(s.tour_arrow,false)
+    function s.close_welcome()
+      s.welcome_open=false
+      show(s.welcome_root,false)
     end
-
-    function s.step_tour(action)
-      if not owner_alive()or not s.settings_open or not s.studio then return end
-      local step=s.tour_step
-      if action=="quick_tour"then
-        if not step then
-          s.tour_return={page=s.studio.page,section=s.studio.section,appearance=s.studio.appearanceSection,
-            effects=s.studio.effectSection,materials=s.studio.materialsOpen,rule=s.rule_id}
+    function s.paint_welcome(w,h)
+      if not s.welcome_open then return end
+      if not s.welcome_root then
+        local root=empty("first_use_welcome")
+        if not root then return end
+        s.welcome_root=root
+        call(root,"EnablePick",true)
+        s.welcome_edge=drawable(root,.59,.47,.28,1)
+        s.welcome_fill=drawable(root,.13,.11,.09,1)
+        s.welcome_header=button("welcome_drag",root)
+        bind_aux(s.welcome_header,root,"welcome")
+        s.welcome_title=label("welcome_title",s.welcome_header,20)
+        text(s.welcome_title,"Raid Frames at a glance")
+        s.welcome_drag_hint=label("welcome_drag_hint",s.welcome_header,11)
+        text(s.welcome_drag_hint,"Drag to move")
+        colour(B.member(s.welcome_drag_hint,"style"),.88,.75,.48,1)
+        s.welcome_lines={}
+        for i,line in ipairs(lines)do
+          local widget=label("welcome_line_"..i,root,14)
+          text(widget,line)
+          s.welcome_lines[i]=widget
         end
-        step=1;s.tour_position=nil;s.tour_priority=nil
-      elseif not step then return
-      elseif action=="tour_skip"or(action=="tour_next"and step==#steps)then s.stop_tour();return
-      elseif action=="tour_back"then step=math.max(1,step-1)
-      elseif action=="tour_next"then step=step+1
-      else return end
-      s.cancel_text_drag();s.ordering_menu=nil;s.tour_practice_drag=nil
-      s.tour_step=step;s.tour_started=B.now(api)or 0
-      local page=steps[step].page
-      if page then
-        s.studio.select(page)
-        if page=="appearance"then s.studio.appearanceSection="design"
-        else s.studio.effectSection=steps[step].section or"icons";s.studio.materialsOpen=false;s.rule_id=nil end
+        s.welcome_done=button("welcome_done",root)
+        text(s.welcome_done,"Got it")
       end
-    end
-
-    -- Same champagne stops and sparkle tint as Buffs & Debuffs Common Effects.
-    local stops={{0,116,87,34},{.17,188,157,90},{.40,246,232,189},{.61,178,147,80},{.78,216,194,138},{1,131,99,41}}
-    local glints={{8,14,7},{22,5,3},{58,7,5},{75,15,7},{7,29,5},{76,32,3},
-      {12,48,7},{73,51,7},{19,62,3},{64,64,5},{40,68,3}}
-    local bounce={0,2,4,6,8,6,4,2}
-    local function arrow_strip(n)
-      local t=(n-1)/15;local i=1
-      while t>stops[i+1][1]do i=i+1 end
-      local a,b=stops[i],stops[i+1];local f=(t-a[1])/(b[1]-a[1])
-      return (a[2]+(b[2]-a[2])*f)/255,(a[3]+(b[3]-a[3])*f)/255,(a[4]+(b[4]-a[4])*f)/255,1
-    end
-    local function orient_arrow(direction,x,y,w,h)
-      if direction=="right"then return y,x,h,w end
-      if direction=="up"then return x,72-y-h,w,h end
-      return x,y,w,h
-    end
-    function s.animate_tour(now)
-      local a=s.tour_anchor
-      if not a or not s.tour_step or not s.settings_open or s.settings_moving or s.aux_drag
-        or s.dragging or s.member_drag then return end
-      local frame=math.floor(math.max(0,now-(s.tour_started or now))/70)
-      local offset=bounce[frame%#bounce+1]
-      local x=a.x+(a.direction=="right"and -offset or 0)
-      local y=a.y+(a.direction=="up"and offset or a.direction=="down"and -offset or 0)
-      place(s.tour_arrow,"UIParent",math.max(0,math.min(x,a.sw-a.w)),math.max(0,math.min(y,a.sh-a.h)),a.w,a.h)
-      if s.tour_glint_frame==frame then return end
-      s.tour_glint_frame=frame
-      for i,pair in ipairs(s.tour_glints)do
-        local phase=(frame+i*5)%12
-        local alpha=math.max(0,1-math.abs(phase-4)/5)
-        for _,part in ipairs(pair)do colour(part,1,.97,.85,alpha)end
+      local root=s.welcome_root
+      local width,height=488,96+#lines*23
+      local pos=s.welcome_position
+      local x=pos and pos.x or math.floor((w-width)/2)
+      local y=pos and pos.y or math.floor((h-height)/2)
+      if not(s.aux_drag and s.aux_drag.kind=="welcome")then
+        place(root,"UIParent",math.max(8,math.min(x,w-width-8)),math.max(8,math.min(y,h-height-8)),width,height)
       end
-    end
-
-    local function practice_card(root)
-      local demo={}
-      demo.raid=drawable(root,.20,.17,.13,1);demo.priority=drawable(root,.25,.20,.13,1)
-      demo.raidTitle=label("tour_raid_title",root,12);text(demo.raidTitle,"RAID SLOTS")
-      demo.priorityTitle=label("tour_priority_title",root,12);text(demo.priorityTitle,"SEPARATE PRIORITY")
-      renderer_ui.parent=root
-      demo.tank=R.create("tour_tank",renderer_ui)
-      demo.mage=R.create("tour_mage",renderer_ui)
-      demo.healer=R.create("tour_healer",renderer_ui)
-      if not demo.tank or not demo.mage or not demo.healer then s.failed=true;return nil end
-      demo.raidTank=demo.tank.root;demo.priorityDps=demo.mage.root
-      demo.drop=drawable(root,.37,.31,.22,1);demo.dropText=label("tour_practice_drop",root,11)
-      demo.member=demo.healer.root
-      call(demo.member,"EnableDrag",true)
-      local function current()
-        return owner_alive()and s.visible and s.settings_open and steps[s.tour_step]and steps[s.tour_step].practice
-          and s.cache[root]and s.cache[root].Show and not s.aux_drag
-      end
-      local function start()
-        if not current()then return end
-        local ok,ctrl=call(B.member(api,"Input"),"IsControlKeyDown")
-        if ok and ctrl==true and current()then s.tour_practice_drag=true;s.refresh()end
-      end
-      local function stop()
-        if not s.tour_practice_drag then return end
-        s.tour_practice_drag=nil
-        if not current()then return end
-        local ok,mx,my=B.mouse(api,current)
-        if ok and current()then
-          local box,drop=s.cache[root],s.cache[demo.drop]
-          if mx>=box.x+drop.x and mx<box.x+drop.x+drop.w and my>=box.y+drop.y and my<box.y+drop.y+drop.h then
-            s.tour_priority=not s.tour_priority
-          end
-        end
-        if current()then s.refresh()end
-      end
-      replace_handler(demo.member,"OnDragStart",start)
-      replace_handler(demo.member,"OnDragStop",stop);replace_handler(demo.member,"OnDragEnd",stop);replace_handler(demo.member,"OnMouseUp",stop)
-      return demo
-    end
-    local function paint_practice(root,width,y,height,visible)
-      if visible and not s.tour_practice then s.tour_practice=practice_card(root)end
-      local d=s.tour_practice;if not d then return end
-      for _,key in ipairs({"raid","priority","raidTitle","priorityTitle","raidTank","priorityDps","drop","dropText","member"})do show(d[key],visible)end
-      if not visible then return end
-      local lx,rx=18,math.floor(width/2)+26
-      local w=math.floor(width/2)-44
-      local layout=s.controller.config.settings.raid
-      local fw=math.min(layout.width,w-18)
-      local fh=math.min(layout.height,math.floor((height-38)/2))
-      local left,right=lx+math.floor((w-fw)/2),rx+math.floor((w-fw)/2)
-      place(d.raid,root,lx,y,w,height-8);place(d.priority,root,rx,y,w,height-8)
-      place(d.raidTitle,root,lx+9,y+3,w-18,18);place(d.priorityTitle,root,rx+9,y+3,w-18,18)
-      local function frame(cell,name,class,role,x,cy,interactive)
-        renderer_ui.parent=root
-        R.paint(cell,{kind="preview",name=name,classKnown=true,className=class,roleKnown=true,role=role,
-          health={known=true,current=82,maximum=100,fraction=.82},mana={known=true,current=64,maximum=100,fraction=.64}},
-          {x=x,y=cy,width=fw,height=fh},s.controller.config.settings.display,false,renderer_ui,s.controller.config.options,{preview=true})
-        optional_input(cell.input,"Enable",true)
-        optional_input(cell.input,"EnablePick",interactive);optional_input(cell.input,"Clickable",interactive)
-      end
-      frame(d.tank,"Tank","Skullknight","tank",left,y+23,false)
-      frame(d.mage,"Mage","Spellsinger","damage",right,y+23,false)
-      local memberX,dropX=left,right
-      if s.tour_priority then memberX,dropX=dropX,memberX end
-      local memberY=y+27+fh
-      place(d.drop,root,dropX,memberY,fw,fh);place(d.dropText,root,dropX+3,memberY,fw-6,fh)
-      text(d.dropText,s.tour_practice_drag and"Drop here"or"Empty slot")
-      if s.tour_practice_drag then colour(d.drop,.57,.42,.19,1)else colour(d.drop,.37,.31,.22,1)end
-      frame(d.healer,"Healer","Cleric","healer",memberX,memberY,true)
-    end
-
-    function s.paint_tour(w,h,now)
-      if not s.tour_step then return end
-      if not s.settings_open or not s.visible then s.stop_tour();return end
-      s.tour_alert_demo=nil
-      if s.colour_picker or s.reset_pending or s.ordering_menu or s.delete_pending then
-        s.tour_anchor=nil;show(s.tour_root,false);show(s.tour_arrow,false);return
-      end
-      local step=steps[s.tour_step]
-      local anchor=step.label and s.studio.labels[step.label]or(step.anchor and s.buttons[step.anchor])
-      local rect=s.cache[anchor]
-      local ax,ay
-      if rect and rect.Show then
-        ax=rect.x;ay=rect.y
-        local parent=rect.parent
-        while parent and parent~="UIParent"do
-          local c=s.cache[parent]
-          if not c or not c.Show then ax=nil;break end
-          ax=ax+c.x;ay=ay+c.y;parent=c.parent
-        end
-      end
-      if not s.tour_root then
-        s.tour_root=empty("quick_tour_card");s.tour_arrow=empty("quick_tour_arrow")
-        if not s.tour_root or not s.tour_arrow then return end
-        call(s.tour_root,"EnablePick",true)
-        call(s.tour_arrow,"EnablePick",false);call(s.tour_arrow,"Clickable",false)
-        s.tour_edge=drawable(s.tour_root,.59,.47,.28,1);s.tour_fill=drawable(s.tour_root,.13,.11,.09,1)
-        s.tour_header=button("tour_drag",s.tour_root)
-        bind_aux(s.tour_header,s.tour_root,"tour")
-        s.tour_title=label("quick_tour_title",s.tour_root,20)
-        s.tour_drag_hint=label("quick_tour_drag_hint",s.tour_root,11);text(s.tour_drag_hint,"Drag to move")
-        s.tour_lines={};s.tour_pieces={};s.tour_outline={};s.tour_glints={}
-        for n=1,#steps[1].lines do s.tour_lines[n]=label("quick_tour_line_"..n,s.tour_root,14)end
-        for n=1,16 do s.tour_outline[n]=drawable(s.tour_arrow,.675,.549,.271,1)end
-        for n=1,16 do s.tour_pieces[n]=drawable(s.tour_arrow,arrow_strip(n))end
-        for i=1,#glints do
-          s.tour_glints[i]={drawable(s.tour_arrow,1,.97,.85,1),drawable(s.tour_arrow,1,.97,.85,1)}
-        end
-        for _,id in ipairs({"tour_skip","tour_back","tour_next"})do button(id,s.tour_root)end
-      end
-      local practiceHeight=step.practice and math.min(2*s.controller.config.settings.raid.height+38,h-16-96-#step.lines*23)or 0
-      local cw,ch=488,96+#step.lines*23+practiceHeight
-      local root=s.tour_root;local position=s.tour_position
-      local x=position and position.x or math.floor((w-cw)/2)
-      local y=position and position.y or math.floor((h-ch)/2)
-      if not position and s.tour_step>1 and ax and x<ax+rect.w and x+cw>ax and y<ay+rect.h and y+ch>ay then
-        if ax+rect.w+cw+18<=w then x=ax+rect.w+10
-        elseif ay+rect.h+ch+18<=h then y=ay+rect.h+10
-        elseif ay>=ch+18 then y=ay-ch-10 end
-      end
-      if not(s.aux_drag and s.aux_drag.kind=="tour")then
-        place(root,"UIParent",math.max(8,math.min(x,w-cw-8)),math.max(8,math.min(y,h-ch-8)),cw,ch)
-      end
-      place(s.tour_edge,root,0,0,cw,ch);place(s.tour_fill,root,1,1,cw-2,ch-2)
-      place(s.tour_header,root,1,1,cw-2,42);show(s.tour_header,true)
-      place(s.tour_title,s.tour_header,17,2,cw-120,38);text(s.tour_title,s.tour_step.." / "..#steps.."  "..step.title)
-      place(s.tour_drag_hint,s.tour_header,cw-91,2,80,38);colour(s.tour_drag_hint.style,.88,.75,.48,1)
-      for n,line in ipairs(s.tour_lines)do
-        if step.lines[n]then place(line,root,19,49+(n-1)*23,cw-38,22);text(line,step.lines[n]);show(line,true)
-        else show(line,false)end
-      end
-      paint_practice(root,cw,51+#step.lines*23,practiceHeight,step.practice==true)
-      for n,id in ipairs({"tour_skip","tour_back","tour_next"})do
-        local o=s.buttons[id]
-        place(o,root,n==1 and 18 or cw-18-(4-n)*88,ch-39,80,27)
-        text(o,n==1 and "Skip"or n==2 and"Back"or s.tour_step==#steps and"Done"or"Next")
-        enable(o,n~=2 or s.tour_step>1);show(o,true);paint_button_chrome(o,n==3,"button")
-      end
-      if ax then
-        local direction=step.label and"right"or ay<71 and"up"or"down"
-        local x=direction=="right"and ax-63 or ax+math.floor(rect.w/2)-42
-        local y=direction=="right"and ay+math.floor(rect.h/2)-42 or direction=="up"and ay+rect.h-9 or ay-63
-        s.tour_anchor={x=x,y=y,direction=direction,w=direction=="right"and 72 or 84,h=direction=="right"and 84 or 72,sw=w,sh=h}
-        for n,piece in ipairs(s.tour_pieces)do
-          local width=n<=9 and 18 or 54-(n-10)*6
-          local x,y=42-width/2,12+(n-1)*3
-          place(s.tour_outline[n],s.tour_arrow,orient_arrow(direction,x-1,y-1,width+2,5))
-          place(piece,s.tour_arrow,orient_arrow(direction,x,y,width,3))
-        end
-        for i,g in ipairs(glints)do
-          local x,y,span=g[1],g[2],g[3];local half=math.floor(span/2)
-          place(s.tour_glints[i][1],s.tour_arrow,orient_arrow(direction,x-half,y,span,1))
-          place(s.tour_glints[i][2],s.tour_arrow,orient_arrow(direction,x,y-half,1,span))
-        end
-        s.animate_tour(now or s.tour_started)
-      else s.tour_anchor=nil end
-      local raise=s.tour_raised_step~=s.tour_step or s.cache[root].Show~=true
-      show(root,true);show(s.tour_arrow,ax~=nil)
-      if raise then call(root,"Raise");call(s.tour_arrow,"Raise");s.tour_raised_step=s.tour_step end
-      s.tour_alert_demo=step.demo==true
+      place(s.welcome_edge,root,0,0,width,height)
+      place(s.welcome_fill,root,1,1,width-2,height-2)
+      place(s.welcome_header,root,1,1,width-2,42)
+      place(s.welcome_title,s.welcome_header,17,2,width-120,38)
+      place(s.welcome_drag_hint,s.welcome_header,width-91,2,80,38)
+      for i,widget in ipairs(s.welcome_lines)do place(widget,root,19,49+(i-1)*23,width-38,22)end
+      place(s.welcome_done,root,width-98,height-39,80,27)
+      paint_button_chrome(s.welcome_done,true,"button")
+      local raise=s.cache[root].Show~=true
+      show(root,true)
+      if raise then call(root,"Raise")end
     end
   end
   function s.repair_dock(managerEnabled,dx,dy)
@@ -2465,25 +2257,17 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     local prefs=s.controller.config.options.auras
     local alerts=prefs.raid_tracker and prefs.large_alerts and s.raidAlerts.current(rows,now)or{}
     local preview=s.alert_move_active==true
-    local demo=s.tour_alert_demo==true and not preview
-    if preview or demo then alerts={{name="Raid member",id=0}}end
+    if preview then alerts={{name="Raid member",id=0}}end
     if #alerts>0 and ready()then
       if not s.raid_alert_root then
         s.raid_alert_root=empty("large_raid_alerts");call(s.raid_alert_root,"EnablePick",true);call(s.raid_alert_root,"Clickable",true)
         s.raid_alert_handle=button("alert_drag_handle",s.raid_alert_root);bind_aux(s.raid_alert_handle,s.raid_alert_root,"alert")
         s.raid_alert_labels={};s.raid_alert_caption=label("raid_alert_caption",s.raid_alert_root,10)
       end
-      local width=math.min(w-32,demo and 390 or 880);local height=#alerts*34+22
+      local width=math.min(w-32,880);local height=#alerts*34+22
       local pos=s.controller.config.options.alerts
-      local ax=not demo and pos.custom_position and pos.x or math.floor((w-width)/2)
+      local ax=pos.custom_position and pos.x or math.floor((w-width)/2)
       local ay=pos.custom_position and pos.y or math.max(8,math.floor(h*0.5))
-      if demo then
-        local card=s.cache[s.tour_root]
-        if card then
-          local below=card.y+card.h+8
-          ay=below+height<=h-8 and below or math.max(8,card.y-height-8)
-        end
-      end
       if not(s.aux_drag and s.aux_drag.kind=="alert")then place(s.raid_alert_root,"UIParent",math.max(8,math.min(ax,w-width-8)),math.max(8,math.min(ay,h-height-8)),width,height)end
       place(s.raid_alert_handle,s.raid_alert_root,0,0,width,19);text(s.raid_alert_handle,"Shift-drag alert • Click to finish");show(s.raid_alert_handle,preview)
       if preview then replace_handler(s.raid_alert_handle,"OnMouseDown",function()if not s.aux_drag then s.drag_click_block=nil end end);replace_handler(s.raid_alert_handle,"OnClick",function()
@@ -2491,14 +2275,14 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
         s.alert_move_active=false;s.settings_open=true;s.studio.select("effects");s.studio.effectSection="tracker"
         s.refresh()
       end)end
-      text(s.raid_alert_caption,demo and"TUTORIAL EXAMPLE"or preview and"Alert position preview"or"EXPERIMENTAL • first observed • freshness unknown")
+      text(s.raid_alert_caption,preview and"Alert position preview"or"EXPERIMENTAL • first observed • freshness unknown")
       show(s.raid_alert_caption,not preview)
       place(s.raid_alert_caption,s.raid_alert_root,0,0,width,18)
       for i,a in ipairs(alerts)do
         local o=s.raid_alert_labels[i];if not o then o=label("large_raid_alert_"..i,s.raid_alert_root,24);s.raid_alert_labels[i]=o end
         call(B.member(o,"style"),"SetEllipsis",true);colour(B.member(o,"style"),1,0.8,0.3,1)
         local effectName,known=s.effectLibrary.label(a.id)
-        text(o,P.text(a.name,24).." • "..P.text(demo and"Petrification"or preview and"Debuff alert preview"or(known and effectName or"Selected debuff"),32));place(o,s.raid_alert_root,0,20+(i-1)*34,width,32);show(o,true)
+        text(o,P.text(a.name,24).." • "..P.text(preview and"Debuff alert preview"or(known and effectName or"Selected debuff"),32));place(o,s.raid_alert_root,0,20+(i-1)*34,width,32);show(o,true)
       end
       for i=#alerts+1,#s.raid_alert_labels do show(s.raid_alert_labels[i],false)end
       if ready()then call(s.raid_alert_root,"Raise")end
@@ -3006,7 +2790,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       if lowerPanels[panel]and owner_alive()then call(panel=="priority"and s.priority_root or s.root,"Lower")end
     end
     s.refresh_options(v,w,h)
-    if owner_alive()then s.paint_tour(w,h,visualNow)end
+    if owner_alive()then s.paint_welcome(w,h)end
     if owner_alive()then s.paint_overlays(v.data.rows,w,h,visualNow)end
     if owner_alive()and s.manager_help_open then call(s.manager_tip,"Raise")end
     s.repair_dock(managerEnabled,dx,dy)
@@ -3016,7 +2800,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
   end
   function s.hide()
     s.profile_share=nil;s.profile_load=nil;s.alert_warning=nil;s.target_effects=nil
-    s.stop_tour()
+    s.close_welcome()
     if s.member_drag then s.end_member_drag(false,true)end
     cancel_colour()
     cancel_reset()
@@ -3063,7 +2847,6 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       return
     end
     s.restore_hover_intent(now);s.restore_native_preference(now)
-    if s.tour_step and s.tour_anchor then s.animate_tour(now)end
     if localMarker and localMarker.active()then
       s.marker_frame=(s.marker_frame or 0)+1
       local plan=s.last_plan
@@ -3116,19 +2899,16 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       end
     end
   end
-  local function first_tour()
-    if not s.first_use_tour or s.tutorial_checked or not owner_alive()or not s.visible then return end
-    s.tutorial_checked=true
+  local function show_first_use_welcome()
+    if not s.first_use_welcome or s.welcome_checked or not owner_alive()or not s.visible then return end
+    s.welcome_checked=true
+    if s.storage.has_saved_settings or s.storage.blocked then return end
     if s.storage.tutorialSeen(owner_alive)~=false or not owner_alive()or not s.visible then return end
-    local enabled=s.hover_enabled or s.hover.armed
-    cancel_input()
-    if not owner_alive()or not s.visible then return end
-    s.hover_enabled=enabled;s.settings_open=true
-    s.step_tour("quick_tour")
-    if s.refresh()and owner_alive()and s.visible and s.tour_step
-      and s.tour_root and s.cache[s.tour_root]and s.cache[s.tour_root].Show==true then
+    s.welcome_open=true
+    if s.refresh()and owner_alive()and s.visible and s.welcome_open
+      and s.welcome_root and s.cache[s.welcome_root]and s.cache[s.welcome_root].Show==true then
       if not s.storage.rememberTutorialSeen(owner_alive)and owner_alive()then
-        s.studio_notice="The tour could not be remembered. It may appear again next time."
+        B.log(api,"Raid Frames could not save that the welcome was shown. It may appear again next time.")
       end
     end
   end
@@ -3140,7 +2920,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       if s.controller.mode=="live" then s.sample_live(true) end
       show(s.root,true);local ready=s.refresh()
       if ready then local now=B.now(api);s.restore_hover_intent(now);s.restore_native_preference(now)end
-      if ready then first_tour()end
+      if ready then show_first_use_welcome()end
       if not owner_alive()then return false end
       return ready
     end
@@ -3624,13 +3404,13 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if s.failed then return false end
     s.built=true;s.visible=true;show(s.root,true);local ready=s.refresh()
     if ready then local now=B.now(api);s.restore_hover_intent(now);s.restore_native_preference(now)end
-    if ready then first_tour()end
+    if ready then show_first_use_welcome()end
     if not owner_alive()then return false end
     return ready
   end
   function s.close()
     s.profile_share=nil;s.profile_load=nil;s.alert_warning=nil;s.target_effects=nil
-    s.stop_tour()
+    s.close_welcome()
     s.cancel_text_drag();s.text_editor=nil
     trace_call("close")
     if s.member_drag then s.end_member_drag(false,true)end
@@ -3657,7 +3437,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       return ok and r~=false
     end
     local contained=true
-    for _,key in ipairs({"priority_reset_root","dock_root","manager_tip","tour_root","tour_arrow","options","root"})do
+    for _,key in ipairs({"priority_reset_root","dock_root","manager_tip","welcome_root","options","root"})do
       local panel=s[key]
       if panel then call(panel,"EnablePick",false);call(panel,"Clickable",false);if not hide_panel(panel)then contained=false end end
     end
@@ -3678,8 +3458,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       local ok,value=call(iface,"Free",o)
       if not ok or value==false then s.cleanup_ok=false;s.closing=false;return false end
       -- A later failure must never make the retry touch a confirmed-freed panel.
-      if o==s.tour_root then s.tour_root=nil end
-      if o==s.tour_arrow then s.tour_arrow=nil end
+      if o==s.welcome_root then s.welcome_root=nil end
       if o==s.options then s.options=nil end
       if o==s.root then s.root=nil end
       if o==s.driver then s.driver=nil end
