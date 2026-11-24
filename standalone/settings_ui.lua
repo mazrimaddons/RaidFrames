@@ -11,6 +11,7 @@ local U={coveragePolicyContract=1,colourPickerContract=Picker.contract==1 and 1 
  expandedStylesContract=T.expandedStylesContract==1 and 1 or 0,
  priorityContract=W.priorityContract==1 and 1 or 0}
 U.targetBuffPolicyContract=3
+U.prioritySizeContract=P.prioritySizeContract==1 and ProfileShare.prioritySizeContract==1 and 1 or 0
 local pages={{"appearance","Appearance"},{"layout","General Settings"},{"ordering","Layout Preset"},
   {"healing","Indicators"},{"effects","Buffs & Debuffs"},{"profiles","Profiles"},{"status","Advanced"}}
 local copy={
@@ -64,6 +65,9 @@ function U.new(ui,parent)
  raid_management="Open raid management. Right-click your name there for loot, dice and raid options.",
  preset="Choose a frame size preset.",layout="Choose how the frames are arranged.",
  frame_width="Change the frame width.",frame_height="Change the frame height.",spacing="Change the gap between frames.",
+ priority_preset="Choose a size for Priority frames, or match the main frames. Other raid frames keep their size.",
+ priority_width="Set the width of Priority frames only. Typing a number switches to a custom Priority size.",
+ priority_height="Set the height of Priority frames only. Typing a number switches to a custom Priority size.",
  font="Change the size of names and health text.",
  reset_layout="Restore the default size and position. You can confirm or undo it.",
  ind_target="Highlight the player you have selected.",ind_hover="Highlight the frame under your mouse.",
@@ -177,6 +181,7 @@ function U.new(ui,parent)
   value=string.format("%s",value)
   local binding=id=="picker_hex"and s.pickerTicket or id=="rule_colour"and s.activeRuleID or (s.dpsBindings and s.dpsBindings[id])or(s.classBindings and s.classBindings[id])
   if id=="frame_width"or id=="frame_height"or id=="spacing"then binding=s.layoutKey end
+  if id=="priority_width"or id=="priority_height"then binding=s.prioritySizeBinding end
   if r.object then
    if r.restore then
     local old=r.restore;r.restore=nil
@@ -690,6 +695,7 @@ function U.new(ui,parent)
   if rule then s.switchStates.rule_enabled=rule.enabled end
   s.classOverrides=ctx.config.options.colours.classes
   wanted={};helpRects={};s.activeRuleID=ctx.ruleID;s.pickerTicket=ctx.picker and ctx.picker.ticket;s.layoutKey=ctx.config.view.layout;s.classBindings={};s.dpsBindings={};s.dpsOverrides=ctx.config.options.colours.dps
+  s.prioritySizeBinding=options.member_layout.priority_size.mode..":"..s.layoutKey
   for _,r in pairs(s.edits)do r.visible=false end
   if not s.built then
    s.background=box(0.1294,0.1137,0.0980,0.98);s.rail=box(0.0902,0.0784,0.0627,1)
@@ -797,6 +803,12 @@ function U.new(ui,parent)
     controls[#controls+1]={"raid_previous","Raid members: page "..ctx.page.." of "..ctx.pages,"Previous members",ctx.page>1}
     controls[#controls+1]={"raid_next","Raid member pages","Next members",ctx.page<ctx.pages}
    end
+   local priority=o.member_layout.priority_size
+   local size=priority.mode=="match"and l or priority
+   controls[#controls+1]={"priority_size_heading","Priority frames",heading=true}
+   controls[#controls+1]={"priority_preset","Priority size",ctx.priorityPreset or(priority.mode=="match"and"Match main frames"or"Custom")}
+   controls[#controls+1]={"priority_width","Priority width (40–480 px)",size.width,field=true}
+   controls[#controls+1]={"priority_height","Priority height (20–100 px)",size.height,field=true}
    drawForm(controls,left,yy,cw,ph)
   elseif s.page=="ordering"then
    local prefs=o.member_layout.ordering;s.orderingPart="slots"
