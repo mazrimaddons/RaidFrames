@@ -2,6 +2,7 @@
 local F=require("Mazrim_Raid_Frames/shared/foundation")
 local MemberLayout=require("Mazrim_Raid_Frames/shared/member_layout")
 local P={version="0.2.73",MAX_ROWS=50,compactContract=1,nativeRaidContract=1,hudManagementContract=2,overhaulContract=1,bankLayoutContract=1}
+P.prioritySizeContract=MemberLayout.prioritySizeContract==1 and 1 or 0
 local function finite(v)return type(v)=="number" and v==v and v>-1/0 and v<1/0 end
 -- Clip by UTF-8 character boundaries; never split a multibyte display name.
 function P.text(value,limit)
@@ -214,10 +215,13 @@ function P.memberLayout(data,mode,settings,screen_w,screen_h,page,options)
   result.custom_members=true;result.priority_rows=projection.priority
   return result
 end
-function P.priorityLayout(placements,mode,settings,screen_w,screen_h,page,showDrop)
+function P.priorityLayout(placements,mode,settings,screen_w,screen_h,page,showDrop,prioritySize)
   if type(placements)~="table"or(#placements==0 and not showDrop)then return nil end
   local clean=F.settings(settings);local c=clean and clean[mode]
+  local size=MemberLayout.prioritySize(prioritySize)
+  if not size then return nil end
   if not c or not finite(screen_w)or not finite(screen_h)or screen_w<680 or screen_h<400 then return nil end
+  if size.mode=="custom"then c.width=size.width;c.height=size.height end
   local rowFit=math.max(1,math.floor((screen_h-24+c.gap_y)/(c.height+c.gap_y)))
   local total=math.min(50,#placements+(showDrop and 1 or 0))
   local fit=math.max(1,math.floor((screen_w-24+c.gap_x)/(c.width+c.gap_x)))

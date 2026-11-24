@@ -13,6 +13,7 @@ local C={alwaysShiftDragContract=1,wideNamesContract=1,layoutToolsContract=1,pla
   preferencesContract=Preferences.contract==1 and 1 or 0,profileContract=Preferences.contract==1 and 1 or 0,dimensionsContract=1,
   MIN_WIDTH=MIN_WIDTH,MAX_WIDTH=MAX_WIDTH,MIN_HEIGHT=MIN_HEIGHT,MAX_HEIGHT=MAX_HEIGHT}
 C.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==3 and 3 or 0
+C.prioritySizeContract=MemberLayout.prioritySizeContract==1 and P.prioritySizeContract==1 and Preferences.prioritySizeContract==1 and 1 or 0
 local presets={
   {name="Native raid",mode="raid",width=62,height=34,columns=5},
   {name="Compact raid",mode="raid",width=104,height=36,columns=5},
@@ -29,6 +30,16 @@ local function presetIndex(c)
 end
 function C.presetName(c)
   local i=presetIndex(c);return i>0 and presets[i].name or "Custom"
+end
+local prioritySizes={{name="Compact",width=62,height=34},{name="Medium",width=104,height=44},{name="Large",width=160,height=60}}
+function C.prioritySizeName(c)
+  local members=c and c.options and c.options.member_layout
+  local size=MemberLayout.prioritySize(members and members.priority_size)
+  if not size or size.mode=="match"then return "Match main frames"end
+  for _,preset in ipairs(prioritySizes)do
+    if size.width==preset.width and size.height==preset.height then return preset.name end
+  end
+  return "Custom"
 end
 local function cycle(value,values)
   for i=1,#values do if value==values[i] then return values[i%#values+1] end end
@@ -62,6 +73,38 @@ function C.new(config)
     if key=="width"then return s.setDimensions(value,layout.height)end
     if key=="height"then return s.setDimensions(layout.width,value)end
     return false
+  end
+  function s.setPrioritySize(mode,width,height)
+    if width==nil then width=104 end;if height==nil then height=44 end
+    local size=MemberLayout.prioritySize({mode=mode,width=width,height=height})
+    if not size then return false end
+    config.options.member_layout.priority_size=size;s.page=1;s.revision=s.revision+1;return true
+  end
+  function s.cyclePrioritySize()
+    local name=C.prioritySizeName(config)
+    if name=="Match main frames"then return s.setPrioritySize("custom",62,34)end
+    for index,preset in ipairs(prioritySizes)do
+      if name==preset.name then
+        local nextPreset=prioritySizes[index+1]
+        if nextPreset then return s.setPrioritySize("custom",nextPreset.width,nextPreset.height)end
+        break
+      end
+    end
+    return s.setPrioritySize("match",104,44)
+  end
+  function s.setPriorityDimension(key,value)
+    if key~="width"and key~="height"then return false end
+    local size=MemberLayout.prioritySize(config.options.member_layout.priority_size)
+    if not size then return false end
+    if size.mode=="match"then
+      local layout=config.settings[config.view.layout]
+      if type(layout)~="table"then return false end
+      size.width,size.height=layout.width,layout.height
+    end
+    size.mode="custom";size[key]=value
+    local checked=MemberLayout.prioritySize(size)
+    if not checked then return false end
+    config.options.member_layout.priority_size=checked;s.page=1;s.revision=s.revision+1;return true
   end
   function s.setSpacing(value)
     if type(value)~="number"or value~=value or value<0 or value>24 or value%1~=0 then return false end
@@ -317,7 +360,7 @@ function C.new(config)
     local data=s.data();if s.mode=="live"and data.source=="raid"and data.membershipEmptyConfirmed==true then s.confirmRaidEnded()end;local requested=type(s.page)=="number"and s.page==s.page and s.page>-1/0 and s.page<1/0 and math.floor(s.page)or 1
     local plan,err=P.memberLayout(data,s.config.view.layout,s.config.settings,w,h,requested,s.config.options.member_layout)
     if not plan then return nil,err end
-    local priority=P.priorityLayout(plan.priority_rows or{},s.config.view.layout,s.config.settings,w,h,requested,priorityDrop==true)
+    local priority=P.priorityLayout(plan.priority_rows or{},s.config.view.layout,s.config.settings,w,h,requested,priorityDrop==true,s.config.options.member_layout.priority_size)
     if priority then plan.pages=math.max(plan.pages,priority.pages);plan.page=math.max(1,math.min(requested,plan.pages))end
     s.page=plan.page
     local pos=s.config.view.position
