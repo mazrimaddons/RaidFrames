@@ -6,6 +6,7 @@ local S={PATH="Mazrim_Raid_Frames/.data/settings.txt",TUTORIAL_PATH="Mazrim_Raid
   managementHintContract=Preferences.helpContract==1 and 1 or 0,watchlistContract=Preferences.watchlistContract==1 and 1 or 0,
   priorityContract=Preferences.priorityContract==1 and 1 or 0}
 S.targetBuffPolicyContract=Preferences.targetBuffPolicyContract==3 and 3 or 0
+S.prioritySizeContract=Preferences.prioritySizeContract==1 and 1 or 0
 function S.defaults()
   return {schema=S.SCHEMA,settings=F.settings(),view={layout="raid",preview_count=25,position="left",compact=false,locked=true},
     options=Preferences.defaults(),profiles={},help=Preferences.helpDefaults(),visibility=Preferences.visibilityDefaults(),controls={hover=false,native_frames="unchanged"}}
@@ -88,7 +89,7 @@ local function validateCore(raw,profile)
       end
       if oldOptions.member_layout==nil then options.member_layout=nil end
       if type(oldOptions.member_layout)=="table"and type(options.member_layout)=="table"then
-        for _,key in ipairs({"dock","sort","manual_slots","ordering","raid_pins"})do if oldOptions.member_layout[key]==nil then options.member_layout[key]=nil end end
+        for _,key in ipairs({"dock","sort","manual_slots","ordering","raid_pins","priority_size"})do if oldOptions.member_layout[key]==nil then options.member_layout[key]=nil end end
       end
       if oldOptions.alerts==nil then options.alerts=nil end
       if oldOptions.colours==nil then options.colours=nil

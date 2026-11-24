@@ -4,17 +4,30 @@ Keep your raid organised and important information easy to see.
 
 - Original ArcheAge and Ellesmere-inspired designs with custom colours and dimensions.
 - Click and optional hover targeting.
-- Automatic class sorting, manual Ctrl-drag placement and a movable Priority group.
+- Automatic class sorting, manual Ctrl-drag placement and a movable Priority group with its own size controls.
 - Selected buff/debuff icons, timers, frame effects and optional screen alerts.
 - Low-health and low-mana indicators and optional distance readings.
 - Native raid-management access, saved profiles and profile sharing.
 - A one-time welcome card for new installations.
 
-#Version 0.2.92
+Version 0.2.94
+
+Priority frames can now use a different size from the main raid frames. Open
+**General Settings**, use the next-page button to find **Priority frames**, then
+choose **Match main frames**, **Compact** (62 x 34), **Medium** (104 x 44), or
+**Large** (160 x 60). You can also type a custom width from 40-480 px and height
+from 20-100 px.
+
+Existing layouts start with **Match main frames**. Click **Save settings** to
+keep your choice; saved and shared profiles include the Priority size. Priority
+bars' hover and click areas follow their size, and raid management opens from
+the correct position when the Priority group has been moved.
+
+Version 0.2.92
 
 New installations show the welcome card once.
 
-#Version 0.2.91
+Version 0.2.91
 
 Raid member names can fall back to the raid slot when the ID-based lookup comes up empty. Distances of 1,000 m or more display in kilometres.
 
@@ -28,7 +41,7 @@ hovered target. The option is off by default and only supports raid members.
 Settings, profiles and the welcome record are saved in the manager-preserved
 `.data` folder. Keep that folder when updating manually.
 
-#Install
+Install
 
 Install **Raid Frames** through Classic Addon Manager, or download the FULL ZIP
 from [Releases](https://github.com/mazrimaddons/RaidFrames/releases/latest).
@@ -37,9 +50,9 @@ Use installation folder `Mazrim_Raid_Frames` and repository branch `main`.
 For manual installation, copy the `Mazrim_Raid_Frames` folder into
 `Documents/AAClassic/Addon/` and add `Mazrim_Raid_Frames` to `Addon/addons.txt`.
 Use the UPDATE ZIP to replace matching files in an existing installation.
-Fully restart the game after updating, then confirm 0.2.92 in the settings.
+Fully restart the game after updating, then confirm 0.2.94 in the settings.
 
-#Known limitations
+Known limitations
 
 Hover targeting changes the actual selected target and does not cast spells.
 Rapid selections can briefly bounce before settling. Distant members' HP/mana
@@ -48,6 +61,6 @@ last-seen timers are estimates, and buff caster ownership is unknown.
 Manual profile-code paste is verified; live whisper delivery needs confirmation.
 See **Known issues** in the addon for details.
 
-#Credits
+Credits
 
 Created by Mazrim with ChatGPT. See the bundled license files for shared code.

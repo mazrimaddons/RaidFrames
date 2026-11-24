@@ -4,6 +4,7 @@ local F=require("Mazrim_Raid_Frames/shared/foundation")
 local P=require("Mazrim_Raid_Frames/shared/preferences")
 local S={contract=1,CHAT_LIMIT=120,MAX_CODE=49152,MAX_PARTS=32}
 S.targetBuffPolicyContract=3
+S.prioritySizeContract=P.prioritySizeContract==1 and 1 or 0
 local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 local values={}
 for n=1,#alphabet do values[alphabet:sub(n,n)]=n-1 end
@@ -11,7 +12,7 @@ for n=1,#alphabet do values[alphabet:sub(n,n)]=n-1 end
 local keys={"settings","view","options","raid","party","display","width","height","columns","gap_x","gap_y",
  "appearance","mode","opacity","colours","member_layout","ordering","enabled","slots","parties","classes",
  "auras","watch","alerts","frame_rules","priorities","kind","material","colour","priority","aura_icons",
- "anchor","positions","text_positions","name","health","distance","x","y","indicators","range","input"}
+ "anchor","positions","text_positions","name","health","distance","x","y","indicators","range","input","priority_size"}
 local keyCode={}
 for i,k in ipairs(keys)do keyCode[k]=alphabet:sub(i,i)end
 local function hash(text)
@@ -107,6 +108,7 @@ local function prepareDefaults()
  -- A true opt-in travels as an explicit difference in full profiles.
  baseline.options.auras.target_buffs_only=nil
  baseline.options.auras.hot_helper_ids=nil
+ baseline.options.member_layout.priority_size=nil
  fingerprint=hash(serial(baseline))
 end
 local function diff(value,default)
@@ -131,6 +133,7 @@ local function portable(profile,mode)
  local out=P.snapshot(profile,true);if not out then return nil end
  local members=out.options.member_layout
  members.assignments={};members.raid_pins={};members.manual_slots=false
+ if members.priority_size.mode=="match"then members.priority_size=nil end
  if mode=="L"then
   out.options.auras=P.copy(baseline.options.auras)
   out.options.aura_icons.positions={}

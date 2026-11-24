@@ -1,7 +1,7 @@
 -- Authored exact-name layout choices; runtime identities are never persisted.
 local Ordering=require("Mazrim_Raid_Frames/shared/ordering")
 local I=require("Mazrim_Raid_Frames/shared/identity")
-local M={contract=1,MAX_ASSIGNMENTS=50}
+local M={contract=1,prioritySizeContract=1,MAX_ASSIGNMENTS=50}
 local function integer(v,lo,hi)return type(v)=="number"and v==v and v%1==0 and v>=lo and v<=hi end
 local function keys(t,allowed)
  if type(t)~="table"then return false end
@@ -37,17 +37,24 @@ function M.position(raw)
   or not integer(raw.x,0,32768)or not integer(raw.y,0,32768)then return nil end
  return{custom_position=raw.custom_position,x=raw.x,y=raw.y}
 end
-function M.defaults()return{enabled=false,assignments={},priority=M.position(),dock=M.position(),sort="native",manual_slots=false,ordering=Ordering.defaults(),raid_pins={}}end
+function M.prioritySize(raw)
+ if raw==nil then return{mode="match",width=104,height=44}end
+ if not keys(raw,{mode=true,width=true,height=true})or(raw.mode~="match"and raw.mode~="custom")
+  or not integer(raw.width,40,480)or not integer(raw.height,20,100)then return nil end
+ return{mode=raw.mode,width=raw.width,height=raw.height}
+end
+function M.defaults()return{enabled=false,assignments={},priority=M.position(),priority_size=M.prioritySize(),dock=M.position(),sort="native",manual_slots=false,ordering=Ordering.defaults(),raid_pins={}}end
 function M.validate(raw)
  if raw==nil then return M.defaults()end
- if not keys(raw,{enabled=true,assignments=true,priority=true,dock=true,sort=true,manual_slots=true,ordering=true,raid_pins=true})or type(raw.enabled)~="boolean"or type(raw.assignments)~="table"then return nil end
+ if not keys(raw,{enabled=true,assignments=true,priority=true,priority_size=true,dock=true,sort=true,manual_slots=true,ordering=true,raid_pins=true})or type(raw.enabled)~="boolean"or type(raw.assignments)~="table"then return nil end
  local priority=M.position(raw.priority);local dock=M.position(raw.dock)
+ local prioritySize=M.prioritySize(raw.priority_size)
  local ordering=Ordering.validate(raw.ordering)
  if not ordering or(raw.raid_pins~=nil and type(raw.raid_pins)~="table")then return nil end
  local pins={};local pinCount=0
  for name,value in pairs(raw.raid_pins or{})do pinCount=pinCount+1;if pinCount>50 or M.name(name)~=name or value~=true or not raw.assignments[name]then return nil end;pins[name]=true end
- if not priority or not dock or(raw.sort~=nil and raw.sort~="native"and raw.sort~="class")or(raw.manual_slots~=nil and type(raw.manual_slots)~="boolean")then return nil end
- local out={enabled=raw.enabled,assignments={},priority=priority,dock=dock,sort=raw.sort or"native",manual_slots=raw.manual_slots==true,ordering=ordering,raid_pins=pins};local count=0
+ if not priority or not prioritySize or not dock or(raw.sort~=nil and raw.sort~="native"and raw.sort~="class")or(raw.manual_slots~=nil and type(raw.manual_slots)~="boolean")then return nil end
+ local out={enabled=raw.enabled,assignments={},priority=priority,priority_size=prioritySize,dock=dock,sort=raw.sort or"native",manual_slots=raw.manual_slots==true,ordering=ordering,raid_pins=pins};local count=0
  for name,record in pairs(raw.assignments)do
   count=count+1
   if count>M.MAX_ASSIGNMENTS or M.name(name)~=name or not keys(record,{group=true,order=true})

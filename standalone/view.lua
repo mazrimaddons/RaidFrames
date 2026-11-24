@@ -25,7 +25,8 @@ local Materials=require("Mazrim_Raid_Frames/shared/materials")
 local StudioSkin=require("Mazrim_Raid_Frames/standalone/studio_skin")
 local StudioPalette=require("Mazrim_Raid_Frames/standalone/studio_palette")
 local Foundation=require("Mazrim_Raid_Frames/shared/foundation")
-local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.92",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+local V={colourPickerContract=Picker.contract==1 and Studio.colourPickerContract==1 and 1 or 0,roleIconToggleContract=Preferences.roleIconToggleContract==1 and R.roleIconToggleContract==1 and 1 or 0,alwaysShiftDragContract=C.alwaysShiftDragContract==1 and Studio.alwaysShiftDragContract==1 and 1 or 0,tooltipLayerContract=Studio.tooltipLayerContract==1 and 1 or 0,overhaulContract=Foundation.overhaulContract==1 and StudioPalette.overhaulContract==1 and C.overhaulContract==1 and P.overhaulContract==1 and Studio.overhaulContract==1 and R.tintCandidatesContract==1 and Auras.tintCandidatesContract==1 and R.visualOverhaulContract==1 and Preferences.overhaulContract==1 and S.overhaulContract==1 and S.managerDataContract==1 and StudioSkin.overhaulContract==1 and Colours.overhaulContract==1 and Watch.frameRulesContract==1 and Auras.frameRulesContract==1 and Library.frameRulesContract==1 and 1 or 0,raidAdapterContract=1,version="0.2.94",slotMetadataContract=R.offlineStatusContract==1 and 1 or 0,
+  prioritySizeContract=C.prioritySizeContract==1 and P.prioritySizeContract==1 and Studio.prioritySizeContract==1 and S.prioritySizeContract==1 and Preferences.prioritySizeContract==1 and ProfileShare.prioritySizeContract==1 and 1 or 0,
   inputRecoveryContract=B.pointerSpaceContract==1 and type(B.mouse)=="function"and type(B.offset)=="function"
     and R.surfaceIsolationContract==1 and 1 or 0,
   expandedStylesContract=Themes.expandedStylesContract==1 and Preferences.expandedStylesContract==1
@@ -739,6 +740,9 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if id=="frame_width"or id=="frame_height"then
       local width=id=="frame_width";local n=whole_pixels(value,width and C.MIN_WIDTH or C.MIN_HEIGHT,width and C.MAX_WIDTH or C.MAX_HEIGHT)
       if n then changed=s.controller.setDimension(width and"width"or"height",n)end
+    elseif id=="priority_width"or id=="priority_height"then
+      local width=id=="priority_width";local n=whole_pixels(value,width and C.MIN_WIDTH or C.MIN_HEIGHT,width and C.MAX_WIDTH or C.MAX_HEIGHT)
+      if n then changed=s.controller.setPriorityDimension(width and"width"or"height",n)end
     elseif id=="spacing"then local n=whole_pixels(value,0,24);if n then changed=s.controller.setSpacing(n)end
     elseif id=="icon_size"or id=="icon_spacing"or id=="icon_count"or id=="icon_timer"then
       local key=({icon_size="size",icon_spacing="spacing",icon_count="max_visible",icon_timer="timer_size"})[id]
@@ -1352,6 +1356,14 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       s.controller.setOption("range","enabled",n~=0);if n~=0 then s.controller.setOption("range","distance",n)end
     elseif name=="range_alpha"then s.controller.setOption("range","alpha",cycle(s.controller.config.options.range.alpha,{0.35,0.5,0.65,0.8}))
     elseif name=="hots"or name=="debuffs"then s.controller.setOption("auras",name,not s.controller.config.options.auras[name])
+    elseif name=="priority_preset"then
+      if s.controller.cyclePrioritySize()then
+        for _,id in ipairs({"priority_width","priority_height"})do
+          local edit=s.studio.edits[id];if edit then edit.visible=false;edit.canonical=nil;edit.lastText=nil;edit.restore=nil end
+        end
+        s.dimensions_notice="Priority size: "..C.prioritySizeName(s.controller.config)..". Save settings to keep it."
+        rebuild_pick_geometry()
+      end
     elseif name=="font"then
       local d=s.controller.config.settings.display;d.font_size=cycle(d.font_size,{10,12,14,16,18,20,24})
     elseif name=="dimensions_apply"then
@@ -2299,20 +2311,22 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
       or not s.controller.live or s.controller.live.source~="raid"then return false end
     if cell and(s.settings_open or not cell.row or not cell.rect or not s.cache[cell.root]or s.cache[cell.root].Show~=true)then return false end
     local root=s.root;local plan=s.last_plan;local rect=cell and cell.rect
+    local origin=rect and rect.panel=="priority"and plan and plan.priority or plan
     cancel_input();s.manager_help_open=false;show(s.manager_tip,false);s.settings_open=false;s.delete_pending=nil
     local epoch=s.input_epoch
     local function ready()
       return owner_alive()and s.visible and not s.settings_open and not s.dragging and not s.painting
         and s.root==root and s.input_epoch==epoch and s.controller.mode=="live"
         and s.controller.live and s.controller.live.source=="raid"
-        and(not cell or(cell.rect==rect and s.last_plan==plan and cell.row and s.cache[cell.root]and s.cache[cell.root].Show==true))
+        and(not cell or(origin and cell.rect==rect and s.last_plan==plan
+          and(rect.panel~="priority"or plan.priority==origin)and cell.row and s.cache[cell.root]and s.cache[cell.root].Show==true))
     end
     local function guard()
       if not ready()then return false end
       if not cell then return true end
       local ok,x,y=B.mouse(api,owner_alive)
       return ready()and ok and B.finite(x)and B.finite(y)
-        and x>=plan.x+rect.x and x<plan.x+rect.x+rect.width and y>=plan.y+rect.y and y<plan.y+rect.y+rect.height
+        and x>=origin.x+rect.x and x<origin.x+rect.x+rect.width and y>=origin.y+rect.y and y<origin.y+rect.y+rect.height
     end
     local fn=B.member(nativeControls,"openRaidManager")
     local ok,result=false,"UNAVAILABLE"
@@ -2604,7 +2618,7 @@ function V.new(api,liveAdapter,targetAttempt,targetFeedback,resourceProbe,ownerC
     if not render_current()then return end
     s.studio.render({orderingMenu=s.ordering_menu,alertMoveActive=s.alert_move_active==true,returnTargetStatus=returnTarget and returnTarget.status or"Experimental return unavailable",raidTrackerAvailable=raidTracker~=nil,raidTrackerStatus=raidTracker and raidTracker.report().status or"Experimental reader unavailable",raidCheckSubjectMatches=subjectMatches==true,raidCheckName=s.raid_check_selected and P.text(s.raid_check_selected.name,32)or"No identified raid member",raidCheckRows=#checkRows,raidCheckAvailable=raidCan,raidCheckReport=raidReport,current=render_current,picker=s.colour_picker,classNames=s.class_names,ruleID=s.rule_id,resetPending=s.reset_pending,pointerX=s.pointer_x,pointerY=s.pointer_y,version=V.version,config=s.controller.config,open=s.settings_open,armed=s.hover.armed or(s.settings_open and s.hover_enabled==true),
       canArm=type(targetAttempt)=="function"and v.mode=="live"and v.data.source=="raid"and not s.dragging and v.data.coverage~="ROSTER_UNAVAILABLE",
-      preview=v.mode=="preview",locked=locked,preset=C.presetName(s.controller.config),named=v.data.named or #v.data.rows,
+      preview=v.mode=="preview",locked=locked,preset=C.presetName(s.controller.config),priorityPreset=C.prioritySizeName(s.controller.config),named=v.data.named or #v.data.rows,
       hp=v.data.healthKnown or 0,mana=v.data.manaKnown or 0,page=v.page,pages=v.pages,
       canToggle=type(B.member(nativeControls,"toggleRaid"))=="function"or type(B.member(nativeControls,"setRaidVisible"))=="function",canProbe=canProbe,probeRunning=running,probeStatus=status,
       nativeFrameLabel=s.remember_controls and(s.controller.config.controls.native_frames==false and"Return original raid frames"or"Hide original raid frames")or nil,
